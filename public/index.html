@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ClawLink - Mission Control</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --text: #f8fafc;
+            --text-dim: #94a3b8;
+            --accent: #3b82f6;
+            --danger: #ef4444;
+            --success: #22c55e;
+            --warning: #eab308;
+            --border: rgba(255,255,255,0.05);
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        h1 { margin: 0 0 20px 0; font-weight: 800; letter-spacing: -0.5px; font-size: 24px; display: flex; align-items: center; }
+        
+        .card {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 20px;
+            width: 100%;
+            max-width: 480px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border);
+        }
+
+        /* Status Indicator */
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--text-dim);
+            display: inline-block;
+            margin-right: 10px;
+            box-shadow: 0 0 0 2px rgba(255,255,255,0.1);
+        }
+        .status-dot.active { background: var(--success); box-shadow: 0 0 8px var(--success); }
+        .status-dot.busy { background: var(--warning); box-shadow: 0 0 8px var(--warning); }
+        .status-dot.error { background: var(--danger); }
+
+        /* Metrics Grid */
+        .metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 15px; }
+        .metric-box { 
+            background: rgba(0,0,0,0.2); 
+            padding: 15px; 
+            border-radius: 12px; 
+            text-align: center; 
+            border: 1px solid var(--border);
+        }
+        .metric-val { font-size: 28px; font-weight: 700; line-height: 1.2; }
+        .metric-label { font-size: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+
+        /* Token Chart */
+    #trend-chart div { transition: height 0.3s; cursor: pointer; }
+    #trend-chart div:hover { opacity: 1 !important; transform: scaleY(1.05); }
+    #trend-labels div { flex: 1; text-align: center; }
+
+    /* Action Buttons */
+        .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .btn {
+            border: none;
+            padding: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .btn:active { transform: scale(0.96); opacity: 0.9; }
+        .btn-danger { background: rgba(239, 68, 68, 0.15); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); }
+        .btn-restart { background: rgba(59, 130, 246, 0.15); color: var(--accent); border: 1px solid rgba(59, 130, 246, 0.3); }
+
+        /* Job List */
+        .job-list { display: flex; flex-direction: column; gap: 8px; }
+        .job-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 14px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+        .job-info { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+        .job-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .job-meta { font-size: 11px; color: var(--text-dim); display: flex; align-items: center; gap: 6px; }
+        
+        .badge { 
+            font-size: 10px; 
+            padding: 2px 6px; 
+            border-radius: 4px; 
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .badge.ok { background: rgba(34, 197, 94, 0.15); color: var(--success); }
+        .badge.fail { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+        .badge.pending { background: rgba(148, 163, 184, 0.15); color: var(--text-dim); }
+
+        .run-icon {
+            background: var(--accent);
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            cursor: pointer;
+            color: white;
+            font-size: 14px;
+            margin-left: 10px;
+            flex-shrink: 0;
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .refresh-btn {
+            background: none;
+            border: none;
+            color: var(--accent);
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        /* Loading Skeleton */
+        .skeleton {
+            height: 40px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 0.8; } 100% { opacity: 0.5; } }
+
+    </style>
+</head>
+<body>
+
+    <h1><span id="status-dot" class="status-dot"></span>ClawLink <span style="font-size:12px; opacity:0.5; margin-left:8px; font-weight:400">v2.1</span></h1>
+
+    <!-- System Status -->
+    <div class="card">
+        <div class="section-header">
+            <span style="font-weight:600">System Status</span>
+            <small style="font-family:monospace; color:var(--text-dim)" id="heartbeat">--:--:--</small>
+        </div>
+        
+        <div class="metrics">
+            <div class="metric-box">
+                <div class="metric-val" id="cpu-val">--%</div>
+                <div class="metric-label">CPU Load</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-val" id="mem-val">--%</div>
+                <div class="metric-label">Memory</div>
+            </div>
+        </div>
+        
+        <div style="margin-top:15px; font-size:13px; color:var(--text-dim); text-align:center; padding: 8px; background:rgba(0,0,0,0.2); border-radius:8px;" id="task-status">
+            System Idle
+        </div>
+
+        <div class="action-grid">
+            <button class="btn btn-restart" onclick="restartGateway()">
+                <span>♻️</span> Restart Gateway
+            </button>
+            <button class="btn btn-danger" onclick="killAll()">
+                <span>🛑</span> Stop All
+            </button>
+        </div>
+    </div>
+
+    <!-- Token Economy (New) -->
+    <div class="card" id="token-card" style="display:none">
+        <div class="section-header">
+            <span style="font-weight:600">Token Economy</span>
+            <div style="font-size:12px; color:var(--text-dim)">
+                Total: <span style="color:var(--text); font-weight:bold" id="grand-total-cost">$0.00</span>
+            </div>
+        </div>
+
+        <!-- Today Stats -->
+        <div style="text-align:center; margin-bottom:20px;">
+            <div style="font-size:12px; color:var(--text-dim); text-transform:uppercase; letter-spacing:1px;">Today's Cost</div>
+            <div style="font-size:36px; font-weight:800; color:var(--success); margin:5px 0;" id="token-cost">$0.00</div>
+            <div style="font-size:12px; opacity:0.6">
+                <span id="token-in">0</span> In • <span id="token-out">0</span> Out
+            </div>
+        </div>
+
+        <!-- Trend Chart -->
+        <div style="margin-bottom:15px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <div style="font-size:11px; color:var(--text-dim);">LAST 7 DAYS</div>
+                <div id="selected-date-info" style="font-size:11px; color:var(--accent); font-weight:bold; opacity:0; transition:opacity 0.2s;">
+                    <!-- Selected Info Injection -->
+                </div>
+            </div>
+            
+            <div id="trend-chart" style="display:flex; align-items:flex-end; gap:6px; height:80px; padding-bottom:5px; border-bottom:1px solid rgba(255,255,255,0.1);">
+                <!-- Bars injected via JS -->
+            </div>
+            <div id="trend-labels" style="display:flex; justify-content:space-between; font-size:9px; color:var(--text-dim); margin-top:4px; padding:0 2px;">
+                <!-- Dates injected via JS -->
+            </div>
+        </div>
+
+        <!-- Daily Detail View (Hidden by default) -->
+        <div id="daily-detail" style="display:none; background:rgba(255,255,255,0.03); border-radius:8px; padding:10px; margin-bottom:15px; border:1px solid var(--border);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                <span style="font-size:12px; font-weight:bold; color:var(--text)" id="detail-date">--</span>
+                <span style="font-size:14px; font-weight:bold; color:var(--success)" id="detail-cost">--</span>
+            </div>
+            <div style="display:flex; gap:15px; font-size:11px; color:var(--text-dim);">
+                <span>📥 <span id="detail-input" style="color:var(--text)">--</span> In</span>
+                <span>📤 <span id="detail-output" style="color:var(--text)">--</span> Out</span>
+            </div>
+        </div>
+
+        <div id="top-models" style="font-size:12px; opacity:0.8; border-top:1px solid rgba(255,255,255,0.05); padding-top:10px;">
+            <!-- Top Models List -->
+        </div>
+    </div>
+
+    <!-- Cron Jobs -->
+    <div class="card">
+        <div class="section-header">
+            <span style="font-weight:600">Mission Control (Cron)</span>
+            <button class="refresh-btn" onclick="fetchJobs()">↻</button>
+        </div>
+        <div id="job-list" class="job-list">
+            <div class="skeleton"></div>
+            <div class="skeleton"></div>
+            <div class="skeleton"></div>
+        </div>
+    </div>
+
+    <script>
+        const API = '/api'; 
+        
+        // --- AUTH: Read Key from URL & Save ---
+        const urlParams = new URLSearchParams(window.location.search);
+        let API_KEY = urlParams.get('key');
+        
+        if (API_KEY) {
+            localStorage.setItem('claw_key', API_KEY);
+            // Clean URL for aesthetics (optional, but nice)
+            window.history.replaceState({}, document.title, window.location.pathname);
+        } else {
+            API_KEY = localStorage.getItem('claw_key');
+        }
+
+        if (!API_KEY) {
+            // Should be handled by server redirect, but just in case
+            API_KEY = prompt('🔑 Please enter Access Key:');
+            if (API_KEY) localStorage.setItem('claw_key', API_KEY);
+        }
+
+        // --- Fetch Wrapper with Auth ---
+        async function fetchAuth(url, options = {}) {
+            const headers = options.headers || {};
+            headers['x-claw-key'] = API_KEY;
+            options.headers = headers;
+            
+            const res = await fetch(url, options);
+            if (res.status === 401) {
+                localStorage.removeItem('claw_key');
+                alert('Session expired. Please refresh.');
+                location.reload();
+                throw new Error('Auth Failed');
+            }
+            return res;
+        }
+
+        // 1. WebSocket Heartbeat
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = protocol + '//' + window.location.host;
+        let ws;
+
+        function connectWS() {
+            ws = new WebSocket(wsUrl);
+            ws.onopen = () => console.log('WS Connected');
+            ws.onclose = () => setTimeout(connectWS, 3000); // Auto-reconnect
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if(data.type === 'heartbeat') {
+                    document.getElementById('heartbeat').innerText = new Date(data.ts).toLocaleTimeString();
+                    // Don't fetchStatus on every tick to save battery
+                }
+            };
+        }
+        connectWS();
+
+        // 2. Format Time (Relative)
+        function timeAgo(ms) {
+            if(!ms) return 'Never';
+            const sec = Math.floor((Date.now() - ms) / 1000);
+            if (sec < 60) return sec + 's ago';
+            const min = Math.floor(sec / 60);
+            if (min < 60) return min + 'm ago';
+            const hr = Math.floor(min / 60);
+            return hr + 'h ago';
+        }
+
+        // 3. Fetch Status
+        async function fetchStatus() {
+            try {
+                const res = await fetchAuth(API + '/status');
+                const data = await res.json();
+                
+                document.getElementById('cpu-val').innerText = data.cpu + '%';
+                document.getElementById('mem-val').innerText = data.mem + '%';
+                document.getElementById('task-status').innerText = data.task || 'System Idle';
+                
+                // Color logic
+                const dot = document.getElementById('status-dot');
+                if (data.status === 'busy') dot.className = 'status-dot busy';
+                else dot.className = 'status-dot active';
+                
+            } catch(e) {
+                document.getElementById('status-dot').className = 'status-dot error';
+            }
+        }
+
+        // 4. Fetch Jobs
+        async function fetchJobs() {
+            try {
+                const res = await fetchAuth(API + '/cron');
+                const jobs = await res.json();
+                
+                // Sort: Running/Active first, then by Last Run Time
+                jobs.sort((a, b) => (b.state?.lastRunAtMs || 0) - (a.state?.lastRunAtMs || 0));
+
+                const container = document.getElementById('job-list');
+                container.innerHTML = '';
+
+                if (jobs.length === 0) {
+                    container.innerHTML = '<div style="text-align:center; opacity:0.5; padding:20px;">No jobs found</div>';
+                    return;
+                }
+
+                jobs.forEach(job => {
+                    if(!job.enabled) return;
+
+                    const lastRun = job.state?.lastRunAtMs;
+                    const status = job.state?.lastStatus || 'pending';
+                    const duration = job.state?.lastDurationMs ? (job.state.lastDurationMs / 1000).toFixed(1) + 's' : '';
+                    
+                    let badgeClass = 'pending';
+                    if (status === 'ok') badgeClass = 'ok';
+                    if (status === 'error') badgeClass = 'fail';
+
+                    const div = document.createElement('div');
+                    div.className = 'job-item';
+                    div.innerHTML = `
+                        <div class="job-info">
+                            <div class="job-name">${job.name}</div>
+                            <div class="job-meta">
+                                <span class="badge ${badgeClass}">${status.toUpperCase()}</span>
+                                <span>• ${timeAgo(lastRun)}</span>
+                                ${duration ? `<span>• ${duration}</span>` : ''}
+                            </div>
+                        </div>
+                        <button class="run-icon" onclick="runJob('${job.id}')" title="Run Now">▶</button>
+                    `;
+                    container.appendChild(div);
+                });
+            } catch(e) {
+                console.error('Job fetch failed', e);
+            }
+        }
+
+        // Actions
+        async function runJob(id) {
+            if(!confirm('Execute this task immediately?')) return;
+            // Optimistic UI update
+            await fetchAuth(API + '/run/' + id, { method: 'POST' });
+            setTimeout(fetchJobs, 2000); // Refresh after delay
+        }
+
+        async function killAll() {
+            if(!confirm('⚠️ EMERGENCY STOP: Kill all running scripts?')) return;
+            await fetchAuth(API + '/kill', { method: 'POST' });
+            alert('Kill signal sent.');
+        }
+
+        async function restartGateway() {
+            if(!confirm('♻️ RESTART GATEWAY?\nThis fixes stuck processes.')) return;
+            await fetchAuth(API + '/gateway/restart', { method: 'POST' });
+            alert('Gateway restarting... Page will reconnect shortly.');
+        }
+
+        // 5. Fetch Token Stats
+        async function fetchTokens() {
+            try {
+                // We'll read the static file generated by Cron
+                const res = await fetchAuth('/token_stats.json');
+                const data = await res.json();
+                
+                document.getElementById('token-card').style.display = 'block';
+
+                // --- 1. Today & Total ---
+                if (data.today) {
+                    document.getElementById('token-cost').innerText = '$' + data.today.cost.toFixed(4);
+                    document.getElementById('token-in').innerText = (data.today.input/1000).toFixed(1) + 'k';
+                    document.getElementById('token-out').innerText = (data.today.output/1000).toFixed(1) + 'k';
+                }
+                if (data.total) {
+                    document.getElementById('grand-total-cost').innerText = '$' + data.total.cost.toFixed(2);
+                }
+
+                // --- 2. Trend Chart (Last 7 Days) ---
+                if (data.history) {
+                    const chart = document.getElementById('trend-chart');
+                    const labels = document.getElementById('trend-labels');
+                    chart.innerHTML = '';
+                    labels.innerHTML = '';
+                    
+                    const days = Object.keys(data.history).sort().slice(-7); // Last 7
+                    if (days.length > 0) {
+                        // Find max for scaling
+                        const maxCost = Math.max(...days.map(d => data.history[d].cost)) || 0.01;
+                        
+                        days.forEach(day => {
+                            const stats = data.history[day];
+                            const cost = stats.cost;
+                            const height = Math.max(5, (cost / maxCost) * 100); 
+                            
+                            // Create Bar
+                            const bar = document.createElement('div');
+                            bar.style.width = '100%';
+                            bar.style.height = height + '%';
+                            bar.style.backgroundColor = 'var(--accent)';
+                            bar.style.borderRadius = '4px 4px 0 0';
+                            bar.style.cursor = 'pointer';
+                            
+                            // Highlight Today by default
+                            const isToday = day === new Date().toISOString().split('T')[0];
+                            bar.style.opacity = isToday ? '1' : '0.4';
+                            
+                            // Click Interaction
+                            bar.onclick = () => {
+                                // Reset opacities
+                                Array.from(chart.children).forEach(c => c.style.opacity = '0.4');
+                                bar.style.opacity = '1';
+                                
+                                // Show Detail Card
+                                const detail = document.getElementById('daily-detail');
+                                detail.style.display = 'block';
+                                
+                                // Populate Data
+                                document.getElementById('detail-date').innerText = day;
+                                document.getElementById('detail-cost').innerText = '$' + cost.toFixed(4);
+                                document.getElementById('detail-input').innerText = (stats.input/1000).toFixed(1) + 'k';
+                                document.getElementById('detail-output').innerText = (stats.output/1000).toFixed(1) + 'k';
+                            };
+
+                            chart.appendChild(bar);
+
+                            // Create Label
+                            const label = document.createElement('div');
+                            label.innerText = day.split('-')[2]; 
+                            labels.appendChild(label);
+                        });
+                    }
+                }
+                
+                // --- 3. Top Models ---
+                const list = document.getElementById('top-models');
+                list.innerHTML = '';
+                if (data.topModels) {
+                    data.topModels.forEach(m => {
+                        const div = document.createElement('div');
+                        div.style.display = 'flex';
+                        div.style.justifyContent = 'space-between';
+                        div.style.marginBottom = '6px';
+                        
+                        // Clean Model Name
+                        let name = m.name.split('/').pop();
+                        if (name.length > 20) name = name.substring(0, 18) + '..';
+
+                        div.innerHTML = `
+                            <div style="display:flex;align-items:center">
+                                <span style="width:6px;height:6px;background:var(--text-dim);border-radius:50%;margin-right:8px"></span>
+                                ${name}
+                            </div>
+                            <span>$${m.cost.toFixed(3)}</span>
+                        `;
+                        list.appendChild(div);
+                    });
+                }
+                
+            } catch(e) {
+                // No token stats yet, hide card
+                document.getElementById('token-card').style.display = 'none';
+            }
+        }
+
+        // Initial Load
+        fetchStatus();
+        fetchJobs();
+        fetchTokens();
+        
+        // Poll Jobs every 10s
+        setInterval(fetchJobs, 10000);
+        setInterval(fetchStatus, 5000); // Poll status too for freshness
+
+    </script>
+</body>
+</html>
