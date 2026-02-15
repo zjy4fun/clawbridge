@@ -83,7 +83,6 @@ function getActiveContext() {
         const logFile = latestSession.sessionFile;
         if (!fs.existsSync(logFile)) return null;
 
-        // Increase window to 50 lines to catch fast actions buried by logs
         const tail = execSync(`tail -n 50 "${logFile}"`).toString();
         const lines = tail.trim().split('\n').reverse();
 
@@ -118,15 +117,15 @@ function getActiveContext() {
 }
 
 // Helper: Save Activity
-let lastRecordedTask = '';
-let lastActivityTime = 0;
+let lastRecordedTask = 'System Idle'; // Init as idle
 
 function logActivity(task) {
     if (!task || task === 'System Idle') return;
-    if (task === lastRecordedTask && (Date.now() - lastActivityTime < 5000)) return; // Debounce 5s
+    
+    // STRICT Dedup: Never log the exact same task twice consecutively
+    if (task === lastRecordedTask) return;
     
     lastRecordedTask = task;
-    lastActivityTime = Date.now();
 
     const entry = {
         ts: new Date().toISOString(),
@@ -174,7 +173,7 @@ function scanFile(filePath) {
         
         if (!fileState[filePath]) {
             fileState[filePath] = mtime;
-            if (Date.now() - ctime < 60000) { // Only log truly new files
+            if (Date.now() - ctime < 60000) { 
                 const rel = filePath.replace('/root/clawd/', '');
                 logActivity(`📄 Created: ${rel}`);
             }
@@ -183,7 +182,7 @@ function scanFile(filePath) {
 
         if (mtime > fileState[filePath]) {
             fileState[filePath] = mtime;
-            if (Date.now() - mtime < 60000) { // Only log recent changes
+            if (Date.now() - mtime < 60000) { 
                 const rel = filePath.replace('/root/clawd/', '');
                 logActivity(`📝 Updated: ${rel}`);
             }
@@ -193,10 +192,8 @@ function scanFile(filePath) {
 
 // Monitor Core
 function checkSystemStatus(callback) {
-    // 1. File Watch
     checkFileChanges();
 
-    // 2. Process Check
     const cmd = "ps -eo pid,pcpu,comm,args --sort=-pcpu | head -n 15";
     exec(cmd, (err, stdout) => {
         if (err) return callback({ status: 'error', task: 'Monitor Error' });
@@ -243,7 +240,12 @@ function checkSystemStatus(callback) {
             taskText = '⚡ Processing (High CPU)';
         }
 
-        if (taskText !== 'System Idle') {
+        // Logic Change: Handle Idle Reset here
+        if (taskText === 'System Idle') {
+            if (lastRecordedTask !== 'System Idle') {
+                lastRecordedTask = 'System Idle'; 
+            }
+        } else {
             logActivity(taskText);
         }
 

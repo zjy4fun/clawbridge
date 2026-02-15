@@ -102,9 +102,11 @@
             border-radius: 10px;
             border: 1px solid var(--border);
         }
-        .job-info { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
-        .job-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .job-meta { font-size: 11px; color: var(--text-dim); display: flex; align-items: center; gap: 6px; }
+        .job-info { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+        .job-name { font-size: 14px; font-weight: 600; color: var(--text); }
+        .job-meta { font-size: 11px; color: var(--text-dim); display: flex; align-items: center; gap: 8px; flex-wrap: wrap;}
+        .job-sched { font-family: monospace; background: rgba(0,0,0,0.3); padding: 1px 4px; border-radius: 3px; color: #a5b4fc; }
+        .job-next { color: var(--accent); font-weight: 500; }
         
         .badge { 
             font-size: 10px; 
@@ -477,8 +479,21 @@
                     if(!job.enabled) return;
 
                     const lastRun = job.state?.lastRunAtMs;
+                    const nextRun = job.state?.nextRunAtMs;
                     const status = job.state?.lastStatus || 'pending';
-                    const duration = job.state?.lastDurationMs ? (job.state.lastDurationMs / 1000).toFixed(1) + 's' : '';
+                    const duration = job.state?.lastDurationMs ? (job.state.lastDurationMs / 1000).toFixed(0) + 's' : '';
+                    const cron = job.schedule?.expr || 'Manual';
+                    
+                    // Calc Next Run
+                    let nextText = '';
+                    if (nextRun) {
+                        const now = Date.now();
+                        const diffMins = Math.round((nextRun - now) / 60000);
+                        const timeStr = new Date(nextRun).toLocaleTimeString('en-US', {hour12:false, hour:'2-digit', minute:'2-digit'});
+                        
+                        if (diffMins < 60) nextText = `🔜 ${timeStr} (in ${diffMins}m)`;
+                        else nextText = `🔜 ${timeStr} (in ${(diffMins/60).toFixed(1)}h)`;
+                    }
                     
                     let badgeClass = 'pending';
                     if (status === 'ok') badgeClass = 'ok';
@@ -491,8 +506,9 @@
                             <div class="job-name">${job.name}</div>
                             <div class="job-meta">
                                 <span class="badge ${badgeClass}">${status.toUpperCase()}</span>
-                                <span>• ${timeAgo(lastRun)}</span>
-                                ${duration ? `<span>• ${duration}</span>` : ''}
+                                <span class="job-sched" title="Schedule">${cron}</span>
+                                <span>⏮️ ${timeAgo(lastRun)} ${duration ? `(${duration})` : ''}</span>
+                                <span class="job-next">${nextText}</span>
                             </div>
                         </div>
                         <button class="run-icon" onclick="runJob('${job.id}')" title="Run Now">▶</button>
