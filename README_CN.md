@@ -59,12 +59,19 @@ systemctl enable --now clawbridge-tunnel
 
 ## 🌐 域名配置
 
-1.  回到 **Cloudflare Tunnel** 配置页面。
+### 方案 A：使用自有域名 (推荐)
+1.  登录 **Cloudflare Zero Trust** 后台。
 2.  点击 **Public Hostname** -> **Add a public hostname**。
-3.  **Subdomain**: 输入子域名（如 `ops`）。
+3.  **Subdomain**: 输入子域名（如 `captain-deck`，为了兼容免费 SSL 请使用连字符）。
 4.  **Domain**: 选择您的域名（如 `clawbridge.app`）。
 5.  **Service**: 选择 `HTTP`，地址填 `localhost:3000`。
 6.  保存。
+
+### 方案 B：申请 ClawBridge Deck (邀请制)
+如果您没有域名，我们可以提供免费的 `clawbridge.app` 子域名。
+*   **格式**: `https://<您的ID>-deck.clawbridge.app`
+*   **示例**: `https://captain-deck.clawbridge.app`
+*   **申请方式**: 目前仅限人工发放。请在 GitHub [提交 Issue](https://github.com/dreamwing/clawbridge-openclaw-mobile-dashboard/issues) 联系管理员。
 
 ### 访问仪表盘
 使用您在 `.env` 中设置的 Key 访问：

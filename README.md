@@ -64,12 +64,19 @@ systemctl enable --now clawbridge-tunnel
 
 ## 🌐 Domain Setup
 
+### Option A: Bring Your Own Domain (Recommended)
 1.  Go back to **Cloudflare Tunnel** configuration page.
 2.  Click **Public Hostname** tab -> **Add a public hostname**.
 3.  **Subdomain**: e.g., `captain-deck` (Use dashes for free SSL compatibility).
 4.  **Domain**: Select your domain (e.g., `clawbridge.app`).
 5.  **Service**: `HTTP` -> `localhost:3000`.
 6.  Save.
+
+### Option B: Use ClawBridge Deck (Invite Only)
+If you don't have a domain, we provide free subdomains under `clawbridge.app` for community members.
+*   **Format**: `https://<your-id>-deck.clawbridge.app`
+*   **Example**: `https://captain-deck.clawbridge.app`
+*   **How to get**: Currently manually provisioned. Please [Open an Issue](https://github.com/dreamwing/clawbridge-openclaw-mobile-dashboard/issues) to request a slot.
 
 ### Accessing the Dashboard
 Visit your URL with the key you set in `.env`:

@@ -1,25 +1,5 @@
 [
   {
-    "ts": "2026-02-15T16:31:02.412Z",
-    "task": "⚡ High CPU: systemd (18%)"
-  },
-  {
-    "ts": "2026-02-15T16:31:08.419Z",
-    "task": "🔧 exec cd /root/clawd/skills/clawbridge-dashboard && \\\ngit add README.md README_CN.md && \\\ngit commit -m \"Docs: Remove sensitive examples and clarify domain setup instructions\" && \\\ngit push origin master"
-  },
-  {
-    "ts": "2026-02-15T16:31:59.508Z",
-    "task": "🔧 exec systemctl restart clawbridge-dashboard"
-  },
-  {
-    "ts": "2026-02-15T16:33:02.528Z",
-    "task": "⚡ High CPU: systemd (39%)"
-  },
-  {
-    "ts": "2026-02-15T16:34:02.549Z",
-    "task": "⚡ High CPU: systemd (19%)"
-  },
-  {
     "ts": "2026-02-15T16:35:02.577Z",
     "task": "⚡ High CPU: systemd (29%)"
   },
@@ -198,5 +178,25 @@
   {
     "ts": "2026-02-15T17:04:03.191Z",
     "task": "⚡ High CPU: systemd (15%)"
+  },
+  {
+    "ts": "2026-02-15T17:04:51.207Z",
+    "task": "🔧 exec cd /root/clawd/skills/clawbridge-dashboard && \\\ngit add . && \\\ngit commit -m \"Docs: Update domain to hyphenated format for Free SSL compatibility\" && \\\ngit push origin master"
+  },
+  {
+    "ts": "2026-02-15T17:06:03.220Z",
+    "task": "⚡ High CPU: systemd (13%)"
+  },
+  {
+    "ts": "2026-02-15T17:07:03.241Z",
+    "task": "⚡ High CPU: systemd (17%)"
+  },
+  {
+    "ts": "2026-02-15T17:08:42.336Z",
+    "task": "🔧 exec cd /root/clawd/skills/clawbridge-dashboard && \\\ngit add . && \\\ngit commit -m \"Docs: Update domain to hyphenated format for Free SSL compatibility\" && \\\ngit push origin master"
+  },
+  {
+    "ts": "2026-02-15T17:09:03.282Z",
+    "task": "⚡ High CPU: systemd (16%)"
   }
 ]
