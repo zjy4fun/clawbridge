@@ -118,10 +118,15 @@ function getActiveContext() {
 
 // Helper: Save Activity
 let lastRecordedTask = '';
+let lastActivityTime = 0;
+
 function logActivity(task) {
-    if (!task || task === 'System Idle' || task === lastRecordedTask) return;
+    if (!task || task === 'System Idle') return;
+    if (task === lastRecordedTask && (Date.now() - lastActivityTime < 5000)) return; // Debounce 5s
     
     lastRecordedTask = task;
+    lastActivityTime = Date.now();
+
     const entry = {
         ts: new Date().toISOString(),
         task: task
@@ -135,13 +140,62 @@ function logActivity(task) {
     } catch(e) {}
 
     history.push(entry);
-    if (history.length > 50) history = history.slice(-50); // Keep last 50
+    if (history.length > 50) history = history.slice(-50); 
 
     fs.writeFileSync(HISTORY_FILE, JSON.stringify(history, null, 2));
 }
 
+// --- File Watcher ---
+let fileState = {}; 
+const WATCH_DIRS = ['/root/clawd/memory', '/root/clawd/scripts'];
+const WATCH_FILES = ['/root/clawd/MEMORY.md', '/root/clawd/AGENTS.md', '/root/clawd/HEARTBEAT.md'];
+
+function checkFileChanges() {
+    WATCH_FILES.forEach(f => scanFile(f));
+    WATCH_DIRS.forEach(d => {
+        if (!fs.existsSync(d)) return;
+        try {
+            const files = fs.readdirSync(d);
+            files.forEach(file => {
+                if (file.startsWith('.') || file.endsWith('.tmp')) return;
+                scanFile(path.join(d, file));
+            });
+        } catch(e) {}
+    });
+}
+
+function scanFile(filePath) {
+    try {
+        if (!fs.existsSync(filePath)) return;
+        const stat = fs.statSync(filePath);
+        const mtime = stat.mtimeMs;
+        const ctime = stat.ctimeMs;
+        
+        if (!fileState[filePath]) {
+            fileState[filePath] = mtime;
+            if (Date.now() - ctime < 60000) { // Only log truly new files
+                const rel = filePath.replace('/root/clawd/', '');
+                logActivity(`📄 Created: ${rel}`);
+            }
+            return;
+        }
+
+        if (mtime > fileState[filePath]) {
+            fileState[filePath] = mtime;
+            if (Date.now() - mtime < 60000) { // Only log recent changes
+                const rel = filePath.replace('/root/clawd/', '');
+                logActivity(`📝 Updated: ${rel}`);
+            }
+        }
+    } catch(e) {}
+}
+
 // Monitor Core
 function checkSystemStatus(callback) {
+    // 1. File Watch
+    checkFileChanges();
+
+    // 2. Process Check
     const cmd = "ps -eo pid,pcpu,comm,args --sort=-pcpu | head -n 15";
     exec(cmd, (err, stdout) => {
         if (err) return callback({ status: 'error', task: 'Monitor Error' });
@@ -188,7 +242,6 @@ function checkSystemStatus(callback) {
             taskText = '⚡ Processing (High CPU)';
         }
 
-        // Log if changed
         if (taskText !== 'System Idle') {
             logActivity(taskText);
         }

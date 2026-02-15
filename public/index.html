@@ -401,6 +401,8 @@
             if (task.includes('🔧')) color = '#fbbf24'; // Amber
             if (task.includes('📜')) color = '#c084fc'; // Purple
             if (task.includes('🤖')) color = '#34d399'; // Emerald
+            if (task.includes('📄')) color = '#22d3ee'; // Cyan (New File)
+            if (task.includes('📝')) color = '#4ade80'; // Green (Modified)
 
             div.innerHTML = `<span style="color:var(--text-dim); margin-right:8px; font-size:10px;">${time}</span><span style="color:${color}">${task}</span>`;
             div.style.marginBottom = '6px';
