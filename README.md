@@ -1,52 +1,135 @@
-# ClawBridge Dashboard 📱
+# ClawBridge Dashboard 🌉
 
-ClawBridge is a lightweight, self-hosted dashboard designed to monitor and control your Clawdbot/Agent instance from anywhere.
+**ClawBridge** (formerly ClawLink) is a lightweight, real-time mission control center designed for **Clawdbot** and **OpenClaw** agents.
 
-It provides real-time system stats (CPU/RAM/Tasks), Cron job management, Token usage analytics, and a secure Cloudflare Tunnel for remote access.
+It provides a mobile-friendly interface to monitor your AI agent's "brain" (thinking process), "hands" (tool execution), "wallet" (token usage), and "schedule" (cron jobs) form anywhere via a secure Cloudflare Tunnel.
 
-**Live URL**: [Your Custom Domain] (e.g., `https://clawlink.geofast.app` - *Note: Domain name may vary based on configuration*)
+![Dashboard Preview](https://via.placeholder.com/800x400?text=ClawBridge+Dashboard+Preview)
 
-## Features
+## ✨ Features
 
--   📊 **System Status**: Real-time CPU, Memory, and Active Task monitoring.
--   🎮 **Mission Control**: View, monitor, and manually trigger Cron jobs.
--   💰 **Token Economy**: Track daily token usage, costs, and model breakdowns.
--   🛡️ **Secure Tunnel**: Auto-managed Cloudflare Tunnel for safe remote access.
--   🔐 **Magic Link**: Secure token-based authentication (no passwords needed).
+### 👁️ The All-Seeing Eye (Real-time Feed)
+- **Mind Reading**: See exactly what your agent is thinking (`🧠 Thinking...`).
+- **Tool Inspection**: Watch live tool executions (`🔧 grep`, `🔧 web_search`).
+- **File Watcher**: Get notified when files are created (`📄`) or modified (`📝`).
+- **Process Monitor**: Detects background scripts (`📜`) and high CPU usage (`⚡`).
+- **Persistent History**: Auto-saves activity logs so you can review past actions.
 
-## Installation
+### 💰 Token Economy
+- **Cost Tracking**: Real-time calculation of Input/Output tokens and USD costs.
+- **Trend Chart**: 7-day visual history of your AI spending.
+- **Model Breakdown**: See which models (Gemini, Claude, DeepSeek) are costing the most.
+- **Drill-down**: Click on any day to see detailed stats.
 
-1.  Clone this repo into your Clawdbot workspace:
-    ```bash
-    cd /root/clawd/skills
-    git clone ... clawbridge-dashboard
-    cd clawbridge-dashboard
-    npm install
-    ```
+### 🎮 Mission Control (Cron)
+- **Live Status**: View all scheduled Clawdbot tasks.
+- **Next Run Predictor**: Countdown to the next execution (e.g., `🔜 14:05 (in 45m)`).
+- **Manual Trigger**: Force run any task immediately with a single tap.
+- **Health Check**: Visual Red/Green indicators for task success/failure.
 
-2.  Configure `.env`:
-    ```ini
-    ACCESS_KEY=your_secret_key
-    TUNNEL_TOKEN=your_cloudflare_tunnel_token
-    ```
+### 🛡️ Enterprise-Grade Stability
+- **Secure Access**: Magic Link authentication (no passwords, key-based).
+- **Auto-Healing**: Systemd services ensure the dashboard and tunnel auto-restart on failure.
+- **Zero-Config Tunnel**: Built-in Cloudflare Tunnel management.
 
-3.  Run via Systemd (Recommended):
-    ```bash
-    # Copy service files
-    cp clawbridge-dashboard.service /etc/systemd/system/
-    cp clawbridge-tunnel.service /etc/systemd/system/
+---
 
-    # Enable & Start
-    systemctl enable --now clawbridge-dashboard
-    systemctl enable --now clawbridge-tunnel
-    ```
+## 🛠️ Installation
 
-## Development
+### 1. Clone & Install
+Clone this repository into your Clawdbot skills directory:
 
--   **Backend**: Node.js + Express (port 3000).
--   **Frontend**: Plain HTML/JS (no build step required).
--   **Tunnel**: Cloudflared binary (auto-downloaded).
+```bash
+cd /root/clawd/skills
+git clone https://github.com/dreamwing/clawbridge-openclaw-mobile-dashboard.git clawbridge-dashboard
+cd clawbridge-dashboard
+npm install
+```
 
-## License
+### 2. Configuration
+Create a `.env` file in the project root:
 
-MIT
+```ini
+# Access Key for Magic Link (e.g., ?key=mysecret)
+ACCESS_KEY=your_secret_key_here
+
+# Cloudflare Tunnel Token (Get this from Zero Trust Dashboard)
+TUNNEL_TOKEN=eyJhIjoi...
+
+# Set to true if you want Node to manage the tunnel (Not recommended if using Systemd)
+ENABLE_EMBEDDED_TUNNEL=false
+```
+
+### 3. Deploy via Systemd (Recommended)
+Use Systemd to keep both the Dashboard and the Tunnel alive forever.
+
+**A. Dashboard Service (`/etc/systemd/system/clawbridge-dashboard.service`)**
+```ini
+[Unit]
+Description=ClawBridge Dashboard Backend
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/clawd/skills/clawbridge-dashboard
+ExecStart=/root/.nvm/versions/node/v22.22.0/bin/node index.js
+EnvironmentFile=/root/clawd/skills/clawbridge-dashboard/.env
+Restart=always
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**B. Tunnel Service (`/etc/systemd/system/clawbridge-tunnel.service`)**
+```ini
+[Unit]
+Description=ClawBridge Tunnel (Cloudflared)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/root/clawd/skills/clawbridge-dashboard/cloudflared tunnel run --token <YOUR_TOKEN_HERE>
+Restart=always
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**C. Start Services**
+```bash
+systemctl daemon-reload
+systemctl enable --now clawbridge-dashboard
+systemctl enable --now clawbridge-tunnel
+```
+
+---
+
+## 📱 Usage
+
+Access your dashboard via your custom Cloudflare Tunnel domain with the magic key:
+
+**URL**: `https://<your-domain>.app/?key=<ACCESS_KEY>`
+
+- **First Visit**: The key is saved to LocalStorage.
+- **Subsequent Visits**: You can just visit `https://<your-domain>.app`.
+
+---
+
+## 🏗️ Architecture
+
+- **Backend**: Node.js + Express.
+    - Monitors `ps` processes.
+    - Parses Clawdbot `sessions.json` and `.jsonl` logs.
+    - Manages persistence in `public/*.json`.
+- **Frontend**: Vanilla HTML/JS/CSS (Single File).
+    - Responsive design for Mobile/Desktop.
+    - WebSocket/Polling for real-time updates.
+- **Tunnel**: `cloudflared` (Linux amd64).
+
+## 📄 License
+
+MIT License. Created by [DreamWing](https://github.com/dreamwing).
