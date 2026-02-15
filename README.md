@@ -2,7 +2,7 @@
 
 **🇺🇸 English** | [🇨🇳 中文](./README_CN.md)
 
-**ClawBridge** (formerly ClawLink) is a lightweight, real-time mission control center designed for **Clawdbot** and **OpenClaw** agents.
+**ClawBridge** is a lightweight, real-time mission control center designed for **Clawdbot** and **OpenClaw** agents.
 
 It provides a mobile-friendly interface to monitor your AI agent's "brain" (thinking process), "hands" (tool execution), "wallet" (token usage), and "schedule" (cron jobs) form anywhere via a secure Cloudflare Tunnel.
 
@@ -26,43 +26,53 @@ npm install
 ```
 
 ### 2. Configuration
-Create a `.env` file:
-
-```ini
-# 1. Set a strong password (Magic Link Key)
-ACCESS_KEY=your_secret_password_here
-
-# 2. Add your Cloudflare Tunnel Token
-TUNNEL_TOKEN=eyJhIjoi...
-
-# 3. Use Systemd (Recommended)
-ENABLE_EMBEDDED_TUNNEL=false
-```
-
-### 3. Deploy via Systemd
-(See repo files `clawbridge-dashboard.service` for templates)
+Copy the example config and edit it:
 
 ```bash
+cp .env.example .env
+nano .env
+```
+
+**How to get `TUNNEL_TOKEN`:**
+1.  Go to **[Cloudflare Zero Trust](https://one.dash.cloudflare.com/)** -> **Networks** -> **Tunnels**.
+2.  Click **Create a tunnel**.
+3.  Choose **Cloudflared** as the connector.
+4.  Name it (e.g., `clawbridge`) -> Save.
+5.  In the "Install and run a connector" section, look at the command.
+6.  Copy the long string after `--token`. It starts with `eyJh...`.
+    *   *Example*: `cloudflared service install eyJhIjoi...` -> Copy `eyJhIjoi...`
+
+### 3. Deploy via Systemd (Recommended)
+
+We provide template files (`.service`) in the repository.
+
+1.  **Edit the service files** to match your actual paths (`User`, `WorkingDirectory`, `ExecStart`).
+2.  **Paste your Token** into `clawbridge-tunnel.service` (replace `<YOUR_TOKEN_HERE>`).
+
+```bash
+# Copy to systemd directory
+cp clawbridge-dashboard.service /etc/systemd/system/
+cp clawbridge-tunnel.service /etc/systemd/system/
+
+# Reload and Start
+systemctl daemon-reload
 systemctl enable --now clawbridge-dashboard
 systemctl enable --now clawbridge-tunnel
 ```
 
 ---
 
-## 🌐 Domain Setup & Usage
+## 🌐 Domain Setup
 
-### Option A: Bring Your Own Domain (Recommended)
-1.  Go to **Cloudflare Zero Trust Dashboard** -> **Networks** -> **Tunnels**.
-2.  Select your tunnel and click **Configure**.
-3.  Add a **Public Hostname** (e.g., `ops.your-domain.com`) pointing to `http://localhost:3000`.
-
-### Option B: Use ClawBridge Deck (Invite Only)
-If you don't have a domain, we provide free subdomains under `deck.clawbridge.app` for community members.
-*   **Format**: `https://<your-id>.deck.clawbridge.app`
-*   **How to get**: Currently manually provisioned. Please [Open an Issue](https://github.com/dreamwing/clawbridge-openclaw-mobile-dashboard/issues) to request a slot.
+1.  Go back to **Cloudflare Tunnel** configuration page.
+2.  Click **Public Hostname** tab -> **Add a public hostname**.
+3.  **Subdomain**: e.g., `ops` (or `captain.deck` for style).
+4.  **Domain**: Select your domain (e.g., `clawbridge.app`).
+5.  **Service**: `HTTP` -> `localhost:3000`.
+6.  Save.
 
 ### Accessing the Dashboard
-Once configured, visit your URL with the key you set in `.env`:
+Visit your URL with the key you set in `.env`:
 
 **URL**: `https://<your-domain>/?key=<ACCESS_KEY>`
 
