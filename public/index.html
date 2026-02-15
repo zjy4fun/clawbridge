@@ -181,8 +181,27 @@
             </div>
         </div>
         
-        <div style="margin-top:15px; font-size:13px; color:var(--text-dim); text-align:center; padding: 8px; background:rgba(0,0,0,0.2); border-radius:8px;" id="task-status">
-            System Idle
+        <!-- Live Activity Feed -->
+        <div style="margin-top:15px;">
+            <div style="font-size:11px; color:var(--text-dim); margin-bottom:5px; display:flex; justify-content:space-between;">
+                <span>LIVE ACTIVITY</span>
+                <span id="activity-status" style="color:var(--success)">● Live</span>
+            </div>
+            <div id="activity-feed" style="
+                height: 140px; 
+                background: rgba(0,0,0,0.3); 
+                border: 1px solid var(--border); 
+                border-radius: 8px; 
+                padding: 10px; 
+                overflow-y: auto; 
+                font-family: monospace; 
+                font-size: 11px; 
+                display: flex; 
+                flex-direction: column;
+                scroll-behavior: smooth;
+            ">
+                <div style="color:var(--text-dim); font-style:italic;">Listening for events...</div>
+            </div>
         </div>
 
         <div class="action-grid">
@@ -328,6 +347,8 @@
         }
 
         // 3. Fetch Status
+        let lastTask = '';
+        
         async function fetchStatus() {
             try {
                 const res = await fetchAuth(API + '/status');
@@ -335,16 +356,78 @@
                 
                 document.getElementById('cpu-val').innerText = data.cpu + '%';
                 document.getElementById('mem-val').innerText = data.mem + '%';
-                document.getElementById('task-status').innerText = data.task || 'System Idle';
+                // document.getElementById('task-status').innerText = data.task || 'System Idle'; // Removed old UI
                 
                 // Color logic
                 const dot = document.getElementById('status-dot');
-                if (data.status === 'busy') dot.className = 'status-dot busy';
-                else dot.className = 'status-dot active';
+                if (data.status === 'busy') {
+                    dot.className = 'status-dot busy';
+                    document.getElementById('activity-status').innerText = '● Busy';
+                    document.getElementById('activity-status').style.color = 'var(--warning)';
+                } else {
+                    dot.className = 'status-dot active';
+                    document.getElementById('activity-status').innerText = '● Idle';
+                    document.getElementById('activity-status').style.color = 'var(--success)';
+                }
+
+                // Feed Logic
+                const currentTask = data.task || 'System Idle';
+                if (currentTask !== 'System Idle' && currentTask !== lastTask) {
+                    addFeedItem(new Date().toISOString(), currentTask);
+                    lastTask = currentTask;
+                }
+                
+                if (currentTask === 'System Idle' && lastTask && lastTask !== 'System Idle') {
+                    lastTask = 'System Idle';
+                }
                 
             } catch(e) {
                 document.getElementById('status-dot').className = 'status-dot error';
             }
+        }
+
+        function addFeedItem(ts, task) {
+            const feed = document.getElementById('activity-feed');
+            // Remove initial "Listening..." placeholder
+            if (feed.children.length === 1 && feed.children[0].innerText.includes('Listening')) {
+                feed.innerHTML = '';
+            }
+
+            const div = document.createElement('div');
+            const time = new Date(ts).toLocaleTimeString('en-US', {hour12:false});
+            
+            let color = 'var(--text)';
+            if (task.includes('🧠')) color = '#60a5fa'; // Blue
+            if (task.includes('🔧')) color = '#fbbf24'; // Amber
+            if (task.includes('📜')) color = '#c084fc'; // Purple
+            if (task.includes('🤖')) color = '#34d399'; // Emerald
+
+            div.innerHTML = `<span style="color:var(--text-dim); margin-right:8px; font-size:10px;">${time}</span><span style="color:${color}">${task}</span>`;
+            div.style.marginBottom = '6px';
+            div.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+            div.style.paddingBottom = '2px';
+            
+            feed.appendChild(div);
+            feed.scrollTop = feed.scrollHeight;
+            
+            // Limit DOM elements
+            if (feed.children.length > 100) feed.removeChild(feed.children[0]);
+        }
+
+        async function fetchHistory() {
+            try {
+                const res = await fetchAuth('/activity_history.json');
+                if (!res.ok) return;
+                const history = await res.json();
+                
+                const feed = document.getElementById('activity-feed');
+                feed.innerHTML = ''; // Clear placeholder
+                
+                history.forEach(item => {
+                    addFeedItem(item.ts, item.task);
+                    lastTask = item.task; // Sync state
+                });
+            } catch(e) {}
         }
 
         // 4. Fetch Jobs
@@ -522,6 +605,7 @@
         }
 
         // Initial Load
+        fetchHistory(); // Load saved history first
         fetchStatus();
         fetchJobs();
         fetchTokens();

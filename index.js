@@ -2,8 +2,9 @@ require('dotenv').config();
 const express = require('express');
 const { createServer } = require('http');
 const { WebSocketServer } = require('ws');
-const { exec } = require('child_process');
+const { exec, execSync } = require('child_process');
 const path = require('path');
+const fs = require('fs');
 const os = require('os');
 const tunnel = require('./tunnel');
 
@@ -15,23 +16,15 @@ const wss = new WebSocketServer({ server });
 // Config from Env
 const SECRET_KEY = process.env.ACCESS_KEY || 'default-insecure';
 const TUNNEL_TOKEN = process.env.TUNNEL_TOKEN;
+const HISTORY_FILE = path.join(__dirname, 'public/activity_history.json');
 
 app.use(express.json());
 
 // --- Magic Link Auth Middleware ---
-// Access via: https://clawlink.geofast.app/?key=...
 app.use((req, res, next) => {
-    // 1. Check Query Param (First access)
-    if (req.query.key === SECRET_KEY) {
-        return next();
-    }
+    if (req.query.key === SECRET_KEY) return next();
+    if (req.headers['x-claw-key'] === SECRET_KEY) return next();
 
-    // 2. Check Header (API calls from frontend)
-    if (req.headers['x-claw-key'] === SECRET_KEY) {
-        return next();
-    }
-
-    // 3. Simple Front-End Redirect for Browser
     if (req.method === 'GET' && !req.path.startsWith('/api')) {
         return res.send(`
             <!DOCTYPE html>
@@ -63,16 +56,96 @@ app.use((req, res, next) => {
             </html>
         `);
     }
-
     res.status(401).json({ error: 'Unauthorized' });
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// API: Status
-app.get('/api/status', (req, res) => {
+// Helper: Get Active Context
+function getActiveContext() {
+    try {
+        const sessionsPath = '/root/.clawdbot/agents/main/sessions/sessions.json';
+        if (!fs.existsSync(sessionsPath)) return null;
+
+        const sessions = JSON.parse(fs.readFileSync(sessionsPath, 'utf8'));
+        let latestSession = null;
+        let maxTime = 0;
+        
+        Object.values(sessions).forEach(s => {
+            if (s.updatedAt > maxTime) {
+                maxTime = s.updatedAt;
+                latestSession = s;
+            }
+        });
+
+        if (!latestSession || (Date.now() - maxTime > 10000)) return null;
+
+        const logFile = latestSession.sessionFile;
+        if (!fs.existsSync(logFile)) return null;
+
+        const tail = execSync(`tail -n 5 "${logFile}"`).toString();
+        const lines = tail.trim().split('\n').reverse();
+
+        for (const line of lines) {
+            try {
+                const event = JSON.parse(line);
+                if (event.message && event.message.content) {
+                    const tool = event.message.content.find(c => c.type === 'toolCall');
+                    if (tool) {
+                        let argStr = '';
+                        if (tool.arguments) {
+                            if (tool.name === 'web_search') argStr = `"${tool.arguments.query}"`;
+                            else if (tool.name === 'read') argStr = tool.arguments.path || tool.arguments.file_path;
+                            else if (tool.name === 'exec') argStr = tool.arguments.command;
+                            else argStr = JSON.stringify(tool.arguments);
+                        }
+                        if (argStr && argStr.length > 30) argStr = argStr.substring(0, 28) + '..';
+                        return `🔧 ${tool.name} ${argStr}`;
+                    }
+                    
+                    const thinking = event.message.content.find(c => c.type === 'thinking');
+                    if (thinking && thinking.thinking) {
+                        let text = thinking.thinking.replace(/^[#\*\- ]+/, '').replace(/\n/g, ' ').trim();
+                        if (text.length > 40) text = text.substring(0, 40) + '..';
+                        return `🧠 ${text}`;
+                    }
+                }
+            } catch(e) {}
+        }
+    } catch (e) { }
+    return null;
+}
+
+// Helper: Save Activity
+let lastRecordedTask = '';
+function logActivity(task) {
+    if (!task || task === 'System Idle' || task === lastRecordedTask) return;
+    
+    lastRecordedTask = task;
+    const entry = {
+        ts: new Date().toISOString(),
+        task: task
+    };
+
+    let history = [];
+    try {
+        if (fs.existsSync(HISTORY_FILE)) {
+            history = JSON.parse(fs.readFileSync(HISTORY_FILE, 'utf8'));
+        }
+    } catch(e) {}
+
+    history.push(entry);
+    if (history.length > 50) history = history.slice(-50); // Keep last 50
+
+    fs.writeFileSync(HISTORY_FILE, JSON.stringify(history, null, 2));
+}
+
+// Monitor Core
+function checkSystemStatus(callback) {
     const cmd = "ps -eo pid,pcpu,comm,args --sort=-pcpu | head -n 15";
     exec(cmd, (err, stdout) => {
+        if (err) return callback({ status: 'error', task: 'Monitor Error' });
+
         const lines = stdout.trim().split('\n').slice(1);
         let activities = [];
         let totalCpu = 0;
@@ -90,29 +163,37 @@ app.get('/api/status', (req, res) => {
                 activities.push(`📜 ${script}`);
             }
             
-            if (args.includes('clawdbot') && !args.includes('gateway') && !args.includes('dashboard')) {
-                activities.push(`🤖 Sub-Agent`);
-            }
-
-            if (['grep', 'find', 'curl', 'wget', 'git', 'npm', 'tar', 'python', 'python3'].includes(comm)) {
-                activities.push(`🔧 ${comm}`);
+            if (['grep', 'find', 'curl', 'wget', 'git', 'tar', 'python', 'python3'].includes(comm)) {
+                let detail = args.split(' ').pop();
+                if (comm === 'grep') detail = args.match(/"([^"]+)"/)?.[1] || detail;
+                if (detail && detail.length > 15) detail = detail.substring(0, 12) + '..';
+                activities.push(`🔧 ${comm} ${detail}`);
             }
         });
 
         activities = [...new Set(activities)];
-
+        const context = getActiveContext();
+        
         let status = 'idle';
         let taskText = 'System Idle';
         
-        if (activities.length > 0) {
+        if (context) {
+            status = 'busy';
+            taskText = context;
+        } else if (activities.length > 0) {
             status = 'busy';
             taskText = activities.join(', ');
-        } else if (totalCpu > 10.0) {
+        } else if (totalCpu > 15.0) {
             status = 'busy';
-            taskText = '🧠 Thinking / Processing';
+            taskText = '⚡ Processing (High CPU)';
         }
 
-        res.json({
+        // Log if changed
+        if (taskText !== 'System Idle') {
+            logActivity(taskText);
+        }
+
+        callback({
             status: status,
             task: taskText,
             cpu: Math.round(totalCpu),
@@ -120,7 +201,17 @@ app.get('/api/status', (req, res) => {
             lastHeartbeat: new Date().toISOString()
         });
     });
+}
+
+// API: Status
+app.get('/api/status', (req, res) => {
+    checkSystemStatus((data) => res.json(data));
 });
+
+// Background Loop
+setInterval(() => {
+    checkSystemStatus(() => {});
+}, 3000);
 
 // API: Kill
 app.post('/api/kill', (req, res) => {
@@ -147,9 +238,7 @@ app.get('/api/cron', (req, res) => {
                 if (data.jobs) return res.json(data.jobs);
             } catch (e) {}
         }
-        // Fallback
         try {
-            const fs = require('fs');
             const fileData = fs.readFileSync('/root/.clawdbot/cron/jobs.json', 'utf8');
             const json = JSON.parse(fileData);
             return res.json(json.jobs || []);
@@ -173,8 +262,6 @@ setInterval(() => {
 async function main() {
     server.listen(PORT, '::', async () => {
         console.log(`[Dashboard] Local: http://[::]:${PORT}`);
-        
-        // Note: Tunnel is now managed by systemd (clawbridge-tunnel), but if running standalone:
         if (process.env.ENABLE_EMBEDDED_TUNNEL === 'true') {
             try {
                 await tunnel.downloadBinary();
