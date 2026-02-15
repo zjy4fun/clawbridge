@@ -188,19 +188,18 @@
                 <span id="activity-status" style="color:var(--success)">● Live</span>
             </div>
             <div id="activity-feed" style="
-                height: 140px; 
+                height: 200px; 
                 background: rgba(0,0,0,0.3); 
                 border: 1px solid var(--border); 
                 border-radius: 8px; 
                 padding: 10px; 
                 overflow-y: auto; 
                 font-family: monospace; 
-                font-size: 11px; 
-                display: flex; 
-                flex-direction: column;
+                font-size: 12px; 
+                display: block; /* Removed flex to prevent squashing */
                 scroll-behavior: smooth;
             ">
-                <div style="color:var(--text-dim); font-style:italic;">Listening for events...</div>
+                <div style="color:var(--text-dim); font-style:italic; padding:5px;">Listening for events...</div>
             </div>
         </div>
 
@@ -404,10 +403,35 @@
             if (task.includes('📄')) color = '#22d3ee'; // Cyan (New File)
             if (task.includes('📝')) color = '#4ade80'; // Green (Modified)
 
-            div.innerHTML = `<span style="color:var(--text-dim); margin-right:8px; font-size:10px;">${time}</span><span style="color:${color}">${task}</span>`;
-            div.style.marginBottom = '6px';
+            div.innerHTML = `<span style="color:var(--text-dim); margin-right:8px; font-size:10px; vertical-align:middle;">${time}</span><span style="color:${color}; vertical-align:middle;">${task}</span>`;
+            
+            // Default Style (Collapsed)
+            div.style.padding = '6px 4px'; // More padding
+            div.style.minHeight = '18px'; // Minimum height
+            div.style.lineHeight = '1.5';
             div.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
-            div.style.paddingBottom = '2px';
+            div.style.cursor = 'pointer';
+            div.style.whiteSpace = 'nowrap';
+            div.style.overflow = 'hidden';
+            div.style.textOverflow = 'ellipsis';
+            div.title = 'Click to expand';
+
+            div.onclick = function() {
+                if (this.style.whiteSpace === 'nowrap') {
+                    // Expanded
+                    this.style.whiteSpace = 'pre-wrap';
+                    this.style.wordBreak = 'break-all';
+                    this.style.background = 'rgba(255,255,255,0.08)';
+                    this.style.padding = '8px';
+                    this.style.borderRadius = '4px';
+                } else {
+                    // Collapsed
+                    this.style.whiteSpace = 'nowrap';
+                    this.style.wordBreak = 'normal';
+                    this.style.background = 'transparent';
+                    this.style.padding = '6px 4px';
+                }
+            };
             
             feed.appendChild(div);
             feed.scrollTop = feed.scrollHeight;

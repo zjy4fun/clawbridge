@@ -83,7 +83,8 @@ function getActiveContext() {
         const logFile = latestSession.sessionFile;
         if (!fs.existsSync(logFile)) return null;
 
-        const tail = execSync(`tail -n 5 "${logFile}"`).toString();
+        // Increase window to 50 lines to catch fast actions buried by logs
+        const tail = execSync(`tail -n 50 "${logFile}"`).toString();
         const lines = tail.trim().split('\n').reverse();
 
         for (const line of lines) {
@@ -99,14 +100,14 @@ function getActiveContext() {
                             else if (tool.name === 'exec') argStr = tool.arguments.command;
                             else argStr = JSON.stringify(tool.arguments);
                         }
-                        if (argStr && argStr.length > 30) argStr = argStr.substring(0, 28) + '..';
+                        if (argStr && argStr.length > 500) argStr = argStr.substring(0, 500) + '...';
                         return `🔧 ${tool.name} ${argStr}`;
                     }
                     
                     const thinking = event.message.content.find(c => c.type === 'thinking');
                     if (thinking && thinking.thinking) {
                         let text = thinking.thinking.replace(/^[#\*\- ]+/, '').replace(/\n/g, ' ').trim();
-                        if (text.length > 40) text = text.substring(0, 40) + '..';
+                        if (text.length > 500) text = text.substring(0, 500) + '...';
                         return `🧠 ${text}`;
                     }
                 }
@@ -220,7 +221,7 @@ function checkSystemStatus(callback) {
             if (['grep', 'find', 'curl', 'wget', 'git', 'tar', 'python', 'python3'].includes(comm)) {
                 let detail = args.split(' ').pop();
                 if (comm === 'grep') detail = args.match(/"([^"]+)"/)?.[1] || detail;
-                if (detail && detail.length > 15) detail = detail.substring(0, 12) + '..';
+                if (detail && detail.length > 500) detail = detail.substring(0, 500) + '...';
                 activities.push(`🔧 ${comm} ${detail}`);
             }
         });
