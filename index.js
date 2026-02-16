@@ -8,12 +8,8 @@ const fs = require('fs');
 const os = require('os');
 const tunnel = require('./tunnel');
 
-const PORT = 3000;
-const app = express();
-const server = createServer(app);
-const wss = new WebSocketServer({ server });
-
-// Config from Env
+// Config
+const PORT = process.env.PORT || 3000;
 const SECRET_KEY = process.env.ACCESS_KEY || 'default-insecure';
 const TUNNEL_TOKEN = process.env.TUNNEL_TOKEN;
 const LOG_DIR = path.join(__dirname, 'data/logs');

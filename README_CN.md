@@ -2,6 +2,8 @@
 
 > **为 OpenClaw/Clawdbot 量身打造的移动端控制台。**
 
+[🇺🇸 English Documentation](README.md)
+
 ClawBridge 是一个轻量级、移动端优先的仪表盘，专为监控和管理 **Clawdbot** 智能体而生。无论你身在何处，都能实时掌握 Agent 的思考过程、成本消耗和任务状态。
 
 <p align="center">
@@ -44,11 +46,11 @@ ClawBridge 是一个轻量级、移动端优先的仪表盘，专为监控和管
     ```
 
 3.  **配置**:
-    创建一个 `.env` 文件:
+    复制示例配置文件:
     ```bash
-    ACCESS_KEY=这里填你的密码
-    PORT=3000
+    cp .env.example .env
     ```
+    然后编辑 `.env` 文件，设置 `ACCESS_KEY` (建议使用随机生成的安全字符串)。
 
 4.  **运行**:
     ```bash

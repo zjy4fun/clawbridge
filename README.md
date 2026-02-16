@@ -2,6 +2,8 @@
 
 > **The Missing Mobile Link for OpenClaw/Clawdbot Agents.**
 
+[🇨🇳 中文文档 (Chinese)](README_CN.md)
+
 ClawBridge is a lightweight, mobile-first dashboard designed to run alongside your **Clawdbot** instance. It provides real-time monitoring, cost tracking, and task management from any device.
 
 <p align="center">
@@ -44,11 +46,11 @@ If you prefer to set it up yourself:
     ```
 
 3.  **Configure**:
-    Create a `.env` file:
+    Copy the example configuration:
     ```bash
-    ACCESS_KEY=your_secret_password_here
-    PORT=3000
+    cp .env.example .env
     ```
+    Then edit `.env` to set your `ACCESS_KEY` (use a strong random string).
 
 4.  **Run**:
     ```bash
