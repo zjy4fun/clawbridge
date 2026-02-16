@@ -2,31 +2,46 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-// --- Config (Open Source Compatible) ---
-// 1. Output: ../data/token_stats/latest.json
-const OUTPUT_FILE = path.join(__dirname, '../data/token_stats/latest.json');
+// --- Config ---
+const DATA_DIR = path.join(__dirname, '../data/token_stats');
+const CONFIG_DIR = path.join(__dirname, '../data/config');
+const PRICING_FILE = path.join(CONFIG_DIR, 'pricing.json');
+const OUTPUT_FILE = path.join(DATA_DIR, 'latest.json');
+const CACHE_FILE = path.join(DATA_DIR, 'cache.json');
 
-// 2. History: ~/.clawdbot/agents/main/sessions/ (Standard Clawdbot Path)
+// History Path
 const HOME_DIR = os.homedir();
 const HISTORY_DIR = path.join(HOME_DIR, '.clawdbot/agents/main/sessions/');
 
-// --- Timezone Detection ---
+// Timezone
 const APP_TIMEZONE = process.env.TZ || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 
-// Helper: Get YYYY-MM-DD in Local Time
 function getLocalDate(date = new Date()) {
     return date.toLocaleString('en-CA', { timeZone: APP_TIMEZONE }).split(',')[0].trim();
 }
 
-// Cost Config (per 1M tokens)
-const COST_MAP = {
-    'google/gemini-3-pro-preview': { input: 0, output: 0 },
-    'google/gemini-2.0-flash-001': { input: 0.10, output: 0.40 },
-    'anthropic/claude-3-5-sonnet-20240620': { input: 3.00, output: 15.00 },
-    'deepseek/deepseek-chat': { input: 0.14, output: 0.28 },
-    'openai/gpt-4o': { input: 2.50, output: 10.00 },
+// Cost Config (Load from file or Default)
+let COST_MAP = {
     'default': { input: 0.10, output: 0.40 }
 };
+
+if (fs.existsSync(PRICING_FILE)) {
+    try {
+        COST_MAP = { ...COST_MAP, ...JSON.parse(fs.readFileSync(PRICING_FILE, 'utf8')) };
+    } catch(e) {
+        console.error('Error loading pricing.json, using defaults');
+    }
+} else {
+    // Fallback defaults if file missing
+    COST_MAP = {
+        'google/gemini-3-pro-preview': { input: 0, output: 0 },
+        'google/gemini-2.0-flash-001': { input: 0.10, output: 0.40 },
+        'anthropic/claude-3-5-sonnet-20240620': { input: 3.00, output: 15.00 },
+        'deepseek/deepseek-chat': { input: 0.14, output: 0.28 },
+        'openai/gpt-4o': { input: 2.50, output: 10.00 },
+        'default': { input: 0.10, output: 0.40 }
+    };
+}
 
 function calcCost(model, input, output) {
     const key = Object.keys(COST_MAP).find(k => model && model.includes(k)) || 'default';
@@ -34,76 +49,117 @@ function calcCost(model, input, output) {
     return (input / 1000000 * rate.input) + (output / 1000000 * rate.output);
 }
 
-async function analyze() {
-    // console.log(`[Analyzer] Starting... Timezone: ${APP_TIMEZONE}`);
+// Core Logic: Parse Single File
+function processFile(filePath) {
+    const content = fs.readFileSync(filePath, 'utf8');
+    const lines = content.trim().split('\n');
     
+    let maxInput = 0;
+    let maxOutput = 0;
+    let maxCost = 0;
+    let lastModel = 'unknown';
+
+    lines.forEach(line => {
+        try {
+            const entry = JSON.parse(line);
+            let usage = entry.usage || (entry.message && entry.message.usage);
+
+            if (usage) {
+                const input = usage.input || usage.inputTokens || 0;
+                const output = usage.output || usage.outputTokens || 0;
+                if (input > maxInput) maxInput = input;
+                if (output > maxOutput) maxOutput = output;
+                if (usage.cost && typeof usage.cost.total === 'number') {
+                    if (usage.cost.total > maxCost) maxCost = usage.cost.total;
+                }
+            }
+            
+            const m = entry.model || (entry.message && entry.message.model);
+            if (m) lastModel = m;
+        } catch(e) {}
+    });
+
+    let finalCost = maxCost;
+    if (finalCost === 0 && (maxInput > 0 || maxOutput > 0)) {
+        finalCost = calcCost(lastModel, maxInput, maxOutput);
+    }
+
+    return {
+        input: maxInput,
+        output: maxOutput,
+        cost: finalCost,
+        model: lastModel
+    };
+}
+
+async function analyze() {
     if (!fs.existsSync(HISTORY_DIR)) {
-        // console.error('[Analyzer] History dir not found:', HISTORY_DIR);
-        // Write empty stats to avoid 404s
         const emptyData = { updatedAt: new Date().toISOString(), today: {}, total: {cost:0}, history: {} };
+        if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
         fs.writeFileSync(OUTPUT_FILE, JSON.stringify(emptyData));
         return;
     }
 
+    // 1. Load Cache
+    let cache = {};
+    try {
+        if (fs.existsSync(CACHE_FILE)) {
+            cache = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'));
+        }
+    } catch(e) {}
+
     const files = fs.readdirSync(HISTORY_DIR).filter(f => f.endsWith('.jsonl'));
+    const newCache = {}; // Rebuild cache to prune deleted files
+    
+    // Aggregators
     const history = {}; 
     const grandTotal = { input: 0, output: 0, cost: 0, models: {} };
-    
+    let freshCount = 0;
+
+    // 2. Scan & Process
     files.forEach(file => {
         try {
             const filePath = path.join(HISTORY_DIR, file);
             const stat = fs.statSync(filePath);
-            const dateStr = getLocalDate(stat.mtime);
-            const content = fs.readFileSync(filePath, 'utf8');
-            const lines = content.trim().split('\n');
-            
-            let maxInput = 0;
-            let maxOutput = 0;
-            let maxCost = 0;
-            let lastModel = 'unknown';
+            const mtime = stat.mtimeMs;
+            const dateStr = getLocalDate(stat.mtime); // Group by File Date
 
-            lines.forEach(line => {
-                try {
-                    const entry = JSON.parse(line);
-                    let usage = entry.usage || (entry.message && entry.message.usage);
+            let stats;
 
-                    if (usage) {
-                        const input = usage.input || usage.inputTokens || 0;
-                        const output = usage.output || usage.outputTokens || 0;
-                        if (input > maxInput) maxInput = input;
-                        if (output > maxOutput) maxOutput = output;
-                        if (usage.cost && typeof usage.cost.total === 'number') {
-                            if (usage.cost.total > maxCost) maxCost = usage.cost.total;
-                        }
-                    }
-                    
-                    const m = entry.model || (entry.message && entry.message.model);
-                    if (m) lastModel = m;
-                } catch(e) {}
-            });
-
-            let finalCost = maxCost;
-            if (finalCost === 0 && (maxInput > 0 || maxOutput > 0)) {
-                finalCost = calcCost(lastModel, maxInput, maxOutput);
+            // Cache Hit?
+            if (cache[file] && cache[file].mtime === mtime) {
+                stats = cache[file].stats;
+            } else {
+                // Cache Miss - Reprocess
+                stats = processFile(filePath);
+                freshCount++;
             }
 
+            // Update Cache
+            newCache[file] = { mtime, stats };
+
+            // Aggregate
             if (!history[dateStr]) history[dateStr] = { input: 0, output: 0, cost: 0 };
-            history[dateStr].input += maxInput;
-            history[dateStr].output += maxOutput;
-            history[dateStr].cost += finalCost;
+            history[dateStr].input += stats.input;
+            history[dateStr].output += stats.output;
+            history[dateStr].cost += stats.cost;
 
-            grandTotal.input += maxInput;
-            grandTotal.output += maxOutput;
-            grandTotal.cost += finalCost;
+            grandTotal.input += stats.input;
+            grandTotal.output += stats.output;
+            grandTotal.cost += stats.cost;
 
-            if (!grandTotal.models[lastModel]) grandTotal.models[lastModel] = { input: 0, output: 0, cost: 0 };
-            grandTotal.models[lastModel].input += maxInput;
-            grandTotal.models[lastModel].output += maxOutput;
-            grandTotal.models[lastModel].cost += finalCost;
+            const m = stats.model;
+            if (!grandTotal.models[m]) grandTotal.models[m] = { input: 0, output: 0, cost: 0 };
+            grandTotal.models[m].input += stats.input;
+            grandTotal.models[m].output += stats.output;
+            grandTotal.models[m].cost += stats.cost;
 
-        } catch (e) {}
+        } catch (e) {
+            // console.error(`Failed ${file}: ${e.message}`);
+        }
     });
 
+    // 3. Finalize Output
     const todayStr = getLocalDate();
     const todayUsage = history[todayStr] || { input: 0, output: 0, cost: 0 };
 
@@ -120,11 +176,13 @@ async function analyze() {
         topModels: topModels
     };
 
-    const dir = path.dirname(OUTPUT_FILE);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+    
+    // Write Cache & Output
+    fs.writeFileSync(CACHE_FILE, JSON.stringify(newCache, null, 2)); // Save for next time
+    fs.writeFileSync(OUTPUT_FILE, JSON.stringify(finalData, null, 2)); // Frontend consumption
 
-    fs.writeFileSync(OUTPUT_FILE, JSON.stringify(finalData, null, 2));
-    // console.log(`[Analyzer] Done. Cost: $${grandTotal.cost.toFixed(4)}`);
+    // console.log(`[Analyzer] Done. Files: ${files.length} (Fresh: ${freshCount}). Cost: $${grandTotal.cost.toFixed(4)}`);
 }
 
 analyze();
