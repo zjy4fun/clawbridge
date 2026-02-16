@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ClawBridge</title>
     <link rel="manifest" href="manifest.json">
-    <link rel="icon" href="icon.svg">
+    <link rel="icon" href="logo.png" type="image/png">
+    <link rel="apple-touch-icon" href="logo.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
@@ -167,7 +168,11 @@
 </head>
 <body>
 
-    <h1><span id="status-dot" class="status-dot"></span>ClawBridge</h1>
+    <h1>
+        <img src="logo.png" alt="Logo" style="width:32px; height:32px; border-radius:8px; margin-right:12px;">
+        <span id="status-dot" class="status-dot" style="margin-right:10px;"></span>
+        ClawBridge
+    </h1>
 
     <!-- VIEW: HOME (Status + Logs) -->
     <div id="view-home" class="view-container active">
