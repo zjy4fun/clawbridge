@@ -426,12 +426,34 @@ app.get('/api/cron', (req, res) => {
 
 // API: Memory Feed
 app.get('/api/memory', (req, res) => {
+    // 1. List available dates
+    if (req.query.list === 'true') {
+        const memoryDir = '/root/clawd/memory';
+        if (!fs.existsSync(memoryDir)) return res.json([]);
+        
+        try {
+            const files = fs.readdirSync(memoryDir)
+                .filter(f => f.match(/^\d{4}-\d{2}-\d{2}\.md$/))
+                .sort()
+                .reverse(); // Newest first
+            return res.json(files.map(f => f.replace('.md', '')));
+        } catch(e) { return res.json([]); }
+    }
+
+    // 2. Get specific date content
     const tz = 'Asia/Shanghai';
-    const date = new Date().toLocaleDateString('en-CA', { timeZone: tz }); // YYYY-MM-DD
+    let date = req.query.date;
+    if (!date) {
+        date = new Date().toLocaleDateString('en-CA', { timeZone: tz });
+    }
+    
+    // Safety check path traversal
+    if (!date.match(/^\d{4}-\d{2}-\d{2}$/)) return res.status(400).json({error: 'Invalid date'});
+
     const memPath = `/root/clawd/memory/${date}.md`;
     
     if (!fs.existsSync(memPath)) {
-        return res.json({ date, content: '*No memory log for today yet.*' });
+        return res.json({ date, content: '*No memory log found for this date.*' });
     }
     
     try {

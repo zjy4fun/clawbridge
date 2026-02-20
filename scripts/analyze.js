@@ -146,20 +146,24 @@ async function analyze() {
             newCache[file] = { mtime, stats };
 
             // Aggregate
-            if (!history[dateStr]) history[dateStr] = { input: 0, output: 0, cost: 0 };
-            history[dateStr].input += stats.input;
-            history[dateStr].output += stats.output;
-            history[dateStr].cost += stats.cost;
+            if (stats.model && stats.model.includes('delivery-mirror')) {
+                // Skip delivery-mirror model costs as per user request
+            } else {
+                if (!history[dateStr]) history[dateStr] = { input: 0, output: 0, cost: 0 };
+                history[dateStr].input += stats.input;
+                history[dateStr].output += stats.output;
+                history[dateStr].cost += stats.cost;
 
-            grandTotal.input += stats.input;
-            grandTotal.output += stats.output;
-            grandTotal.cost += stats.cost;
+                grandTotal.input += stats.input;
+                grandTotal.output += stats.output;
+                grandTotal.cost += stats.cost;
 
-            const m = stats.model;
-            if (!grandTotal.models[m]) grandTotal.models[m] = { input: 0, output: 0, cost: 0 };
-            grandTotal.models[m].input += stats.input;
-            grandTotal.models[m].output += stats.output;
-            grandTotal.models[m].cost += stats.cost;
+                const m = stats.model;
+                if (!grandTotal.models[m]) grandTotal.models[m] = { input: 0, output: 0, cost: 0 };
+                grandTotal.models[m].input += stats.input;
+                grandTotal.models[m].output += stats.output;
+                grandTotal.models[m].cost += stats.cost;
+            }
 
         } catch (e) {
             // console.error(`Failed ${file}: ${e.message}`);
