@@ -215,6 +215,36 @@ function scanFile(filePath) {
     } catch(e) {}
 }
 
+// Helper: Get Versions
+let cachedVersions = null;
+function getVersions() {
+    if (cachedVersions) return cachedVersions;
+    
+    let dashboard = 'Unknown';
+    let core = 'Unknown';
+    
+    // 1. Dashboard Version (from local package.json)
+    try {
+        const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+        dashboard = pkg.version;
+    } catch(e) {}
+
+    // 2. OpenClaw Core Version
+    try {
+        const cmd = `${getOpenClawCommand()} --version`;
+        core = execSync(cmd).toString().trim();
+    } catch(e) {
+        // Fallback: try reading core package.json if standard path
+        try {
+            const corePkg = JSON.parse(fs.readFileSync('/root/.nvm/versions/node/v22.22.0/lib/node_modules/openclaw/package.json', 'utf8'));
+            core = `v${corePkg.version}`;
+        } catch(err) {}
+    }
+
+    cachedVersions = { dashboard, core };
+    return cachedVersions;
+}
+
 // Monitor Core
 function checkSystemStatus(callback) {
     checkFileChanges();
@@ -230,6 +260,7 @@ function checkSystemStatus(callback) {
             let activities = [];
             let totalCpu = 0;
             let topProc = null;
+
 
             lines.forEach((line, index) => {
                 const parts = line.trim().split(/\s+/);
@@ -282,6 +313,8 @@ function checkSystemStatus(callback) {
                 logActivity(taskText);
             }
 
+            const versions = getVersions();
+
             callback({
                 status: status,
                 task: taskText,
@@ -289,7 +322,8 @@ function checkSystemStatus(callback) {
                 mem: Math.round((1 - os.freemem() / os.totalmem()) * 100),
                 disk: diskUsage,
                 timezone: process.env.TZ || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
-                lastHeartbeat: new Date().toISOString()
+                lastHeartbeat: new Date().toISOString(),
+                versions: versions
             });
         });
     });
