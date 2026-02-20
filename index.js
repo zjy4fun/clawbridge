@@ -327,7 +327,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -418,7 +418,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -509,7 +509,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -600,7 +600,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -691,7 +691,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -782,7 +782,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -873,7 +873,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -964,7 +964,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -1055,7 +1055,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -1146,7 +1146,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -1237,7 +1237,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -1328,7 +1328,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -1419,7 +1419,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -1510,7 +1510,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -1601,7 +1601,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -1692,7 +1692,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -1783,7 +1783,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -1874,7 +1874,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -1965,7 +1965,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -2056,7 +2056,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -2147,7 +2147,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -2238,7 +2238,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -2329,7 +2329,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -2420,7 +2420,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -2511,7 +2511,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -2602,7 +2602,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -2693,7 +2693,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -2784,7 +2784,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -2875,7 +2875,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -2966,7 +2966,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -3057,7 +3057,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -3148,7 +3148,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -3239,7 +3239,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -3330,7 +3330,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -3421,7 +3421,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -3512,7 +3512,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -3603,7 +3603,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -3694,7 +3694,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -3785,7 +3785,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -3876,7 +3876,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -3967,7 +3967,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -4058,7 +4058,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -4149,7 +4149,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -4240,7 +4240,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -4331,7 +4331,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -4422,7 +4422,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -4513,7 +4513,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -4604,7 +4604,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -4695,7 +4695,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -4786,7 +4786,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -4877,7 +4877,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -4968,7 +4968,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -5059,7 +5059,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -5150,7 +5150,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -5241,7 +5241,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -5332,7 +5332,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -5423,7 +5423,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -5514,7 +5514,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -5605,7 +5605,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -5696,7 +5696,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -5787,7 +5787,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -5878,7 +5878,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -5969,7 +5969,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -6060,7 +6060,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -6151,7 +6151,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -6242,7 +6242,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -6333,7 +6333,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -6424,7 +6424,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -6515,7 +6515,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -6606,7 +6606,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -6697,7 +6697,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -6788,7 +6788,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -6879,7 +6879,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -6970,7 +6970,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -7061,7 +7061,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -7152,7 +7152,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -7243,7 +7243,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -7334,7 +7334,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -7425,7 +7425,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -7516,7 +7516,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -7607,7 +7607,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -7698,7 +7698,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -7789,7 +7789,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -7880,7 +7880,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
@@ -7971,7 +7971,7 @@ function checkSystemStatus(callback) {
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 15.0) {
+                } else if (totalCpu > 40.0) {
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
                 }
