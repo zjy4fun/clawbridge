@@ -510,7 +510,7 @@ app.get('/api/cron', (req, res) => {
                     fileData = fs.readFileSync(v2Path, 'utf8');
                 } else {
                     // Fallback to legacy path
-                    fileData = fs.readFileSync('/root/.clawdbot/cron/jobs.json', 'utf8');
+                    fileData = fs.readFileSync(path.join(HOME_DIR, '.clawdbot/cron/jobs.json'), 'utf8');
                 }
                 const json = JSON.parse(fileData);
                 return res.json(json.jobs || []);
