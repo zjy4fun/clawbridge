@@ -406,20 +406,38 @@ app.post('/api/gateway/restart', (req, res) => {
 
 // API: Cron
 app.get('/api/cron', (req, res) => {
-    // Use 'openclaw' command instead of hardcoded path
-    exec('openclaw cron list --json', { maxBuffer: 1024 * 1024 * 5 }, (err, stdout) => {
-        if (!err) {
+    // FIX: Use absolute path to openclaw binary to ensure systemd execution works
+    const cmd = '/root/.nvm/versions/node/v22.22.0/bin/openclaw cron list --json';
+    
+    exec(cmd, { maxBuffer: 1024 * 1024 * 5 }, (err, stdout, stderr) => {
+        if (err) {
+            console.error('[Cron API Error]', stderr || err.message);
+            // Fallback to static file if CLI fails
             try {
-                const data = JSON.parse(stdout);
-                if (data.jobs) return res.json(data.jobs);
-            } catch (e) {}
+                // Try V2 path first
+                let fileData;
+                const v2Path = '/root/clawd/.openclaw/cron/jobs.json';
+                if (fs.existsSync(v2Path)) {
+                    fileData = fs.readFileSync(v2Path, 'utf8');
+                } else {
+                    // Fallback to legacy path
+                    fileData = fs.readFileSync('/root/.clawdbot/cron/jobs.json', 'utf8');
+                }
+                const json = JSON.parse(fileData);
+                return res.json(json.jobs || []);
+            } catch(e) {
+                console.error('[Cron File Error]', e.message);
+                return res.json([]); 
+            }
         }
+        
         try {
-            const fileData = fs.readFileSync('/root/clawd/.openclaw/cron/jobs.json', 'utf8');
-            const json = JSON.parse(fileData);
-            return res.json(json.jobs || []);
-        } catch(e) {
-            res.json([]); 
+            const data = JSON.parse(stdout);
+            if (data.jobs) return res.json(data.jobs);
+            return res.json([]);
+        } catch (e) {
+            console.error('[Cron Parse Error]', e.message);
+            res.json([]);
         }
     });
 });
