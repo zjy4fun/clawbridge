@@ -9,6 +9,24 @@ NC='\033[0m'
 
 echo -e "${BLUE}=== ClawBridge Dashboard Installer ===${NC}"
 
+# Parse Args
+TOKEN=""
+NO_TUNNEL=false
+
+for arg in "$@"
+do
+    case $arg in
+        --token=*)
+        TOKEN="${arg#*=}"
+        shift
+        ;;
+        --no-tunnel)
+        NO_TUNNEL=true
+        shift
+        ;;
+    esac
+done
+
 # 1. Check Node
 if ! command -v node &> /dev/null; then
     echo "❌ Node.js not found. Please install Node.js v18+ first."
@@ -89,7 +107,25 @@ fi
 
 # 5. Remote Access (Cloudflare Tunnel)
 echo -e "\n${BLUE}🌐 Remote Access Configuration${NC}"
-read -p "Do you want to expose this dashboard to the public internet via Cloudflare Tunnel? (y/N) " ENABLE_TUNNEL
+
+# Logic:
+# If --token is provided, use it directly (Non-Interactive).
+# If --no-tunnel is provided, skip (Non-Interactive).
+# Else, ask user (Interactive).
+
+ENABLE_TUNNEL="n"
+
+if [ ! -z "$TOKEN" ]; then
+    echo "✅ Token provided via argument. Configuring tunnel..."
+    CF_TOKEN="$TOKEN"
+    ENABLE_TUNNEL="y"
+elif [ "$NO_TUNNEL" = true ]; then
+    echo "ℹ️ --no-tunnel flag detected. Skipping tunnel setup."
+    ENABLE_TUNNEL="n"
+else
+    # Interactive fallback
+    read -p "Do you want to expose this dashboard to the public internet via Cloudflare Tunnel? (y/N) " ENABLE_TUNNEL
+fi
 
 if [[ "$ENABLE_TUNNEL" =~ ^[Yy]$ ]]; then
     if ! command -v cloudflared &> /dev/null; then
@@ -107,18 +143,21 @@ if [[ "$ENABLE_TUNNEL" =~ ^[Yy]$ ]]; then
         chmod +x cloudflared
     fi
 
-    echo -e "${YELLOW}👉 Run this command to login to Cloudflare (in a separate terminal):${NC}"
-    echo "   ./cloudflared tunnel login"
-    echo -e "   Then create a tunnel: ./cloudflared tunnel create clawbridge"
-    echo -e "   Then add token to .env: TUNNEL_TOKEN=..."
-    
-    # We can't fully automate this without user interaction or token paste.
-    # Let's offer the "Quick Tunnel" (TryCloudflare) option for instant testing?
-    # Actually, Quick Tunnels don't require login but URL changes every time.
-    # Let's ask for token paste if they have one.
-    
-    read -p "Paste your Cloudflare Tunnel Token (or press Enter to skip): " CF_TOKEN
+    # If we don't have a token yet (Interactive mode), ask for it
+    if [ -z "$CF_TOKEN" ]; then
+        echo -e "${YELLOW}👉 Run this command to login to Cloudflare (in a separate terminal):${NC}"
+        echo "   ./cloudflared tunnel login"
+        echo -e "   Then create a tunnel: ./cloudflared tunnel create clawbridge"
+        echo -e "   Then add token to .env: TUNNEL_TOKEN=..."
+        
+        read -p "Paste your Cloudflare Tunnel Token (or press Enter to skip): " CF_TOKEN
+    fi
+
     if [ ! -z "$CF_TOKEN" ]; then
+        # Check if already exists to avoid duplication
+        sed -i '/TUNNEL_TOKEN=/d' "$ENV_FILE"
+        sed -i '/ENABLE_EMBEDDED_TUNNEL=/d' "$ENV_FILE"
+        
         echo "TUNNEL_TOKEN=$CF_TOKEN" >> "$ENV_FILE"
         echo "ENABLE_EMBEDDED_TUNNEL=true" >> "$ENV_FILE"
         echo "✅ Remote access configured."
