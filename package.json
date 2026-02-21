@@ -1,5 +1,5 @@
 {
-  "name": "clawdbot-skill-clawbridge-dashboard",
+  "name": "clawbridge",
   "version": "1.0.0",
   "description": "Local Agent Dashboard with Zero-Config Cloudflare Tunnel for Mobile Control",
   "main": "index.js",

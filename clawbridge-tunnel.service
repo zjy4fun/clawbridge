@@ -1,20 +1,14 @@
 [Unit]
-Description=ClawBridge Tunnel (Cloudflared)
+Description=ClawBridge Cloudflare Tunnel
 After=network.target
 
 [Service]
 Type=simple
-User=root
-# Ensure cloudflared is executable (chmod +x)
-ExecStart=/root/clawd/skills/clawbridge-dashboard/cloudflared tunnel run
-# Token is loaded from EnvironmentFile or passed directly if preferred
-# But cloudflared usually takes token from command line or yaml.
-# For simplicity in this template, we assume user pastes token here or uses env var in a wrapper script.
-# Better approach: Use the token from .env via EnvironmentFile and a small shell wrapper, 
-# OR just instruct user to paste it here. Let's instruct user to paste.
-# ExecStart=... tunnel run --token <PASTE_YOUR_TOKEN_HERE>
+WorkingDirectory=%h/skills/clawbridge
+ExecStart=%h/skills/clawbridge/cloudflared tunnel run
+EnvironmentFile=%h/skills/clawbridge/.env
 Restart=always
 RestartSec=5s
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target

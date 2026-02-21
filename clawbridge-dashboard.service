@@ -4,15 +4,12 @@ After=network.target
 
 [Service]
 Type=simple
-User=root
-# Change this path to your actual installation directory
-WorkingDirectory=/root/clawd/skills/clawbridge-dashboard
-ExecStart=/usr/bin/node index.js
-# Or use full path to node if not in /usr/bin
-# ExecStart=/root/.nvm/versions/node/v22.22.0/bin/node index.js
-EnvironmentFile=/root/clawd/skills/clawbridge-dashboard/.env
+# User=root # Removed to allow user-level systemd
+WorkingDirectory=%h/skills/clawbridge
+ExecStart=/usr/bin/env node index.js
+EnvironmentFile=%h/skills/clawbridge/.env
 Restart=always
 RestartSec=5s
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
