@@ -71,6 +71,11 @@ Want a fixed URL like `dash.yoursite.com`?
     ```
     *   Or force a new Quick Tunnel: `./install.sh --force-cf`
 
+## 📱 Mobile App (PWA)
+1.  Open the dashboard in Safari (iOS) or Chrome (Android).
+2.  Tap "Share" -> "Add to Home Screen".
+3.  Launch it like a native app (full screen, no browser bar).
+
 ## 🛠️ Tech Stack
 *   **Backend**: Node.js (Express, WebSocket) - Lightweight sidecar process.
 *   **Frontend**: Vanilla JS - Zero build step, instant load.

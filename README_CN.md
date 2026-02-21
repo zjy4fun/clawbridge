@@ -68,6 +68,11 @@ curl -sL https://raw.githubusercontent.com/dreamwing/clawbridge/master/setup.sh 
     ```
     *   或者强制开启临时公网隧道：`./install.sh --force-cf`
 
+## 📱 移动端 App (PWA)
+1.  在 Safari (iOS) 或 Chrome (Android) 中打开 Dashboard。
+2.  点击 "分享" -> "添加到主屏幕"。
+3.  它将像原生 App 一样启动（全屏显示，无浏览器地址栏）。
+
 ## 🛠️ 技术栈
 *   **后端**: Node.js (Express, WebSocket) - 轻量级 Sidecar 进程。
 *   **前端**: Vanilla JS - 无需编译，秒开。
