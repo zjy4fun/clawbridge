@@ -18,9 +18,7 @@ const SECRET_KEY = process.env.ACCESS_KEY || 'default-insecure';
 const TUNNEL_TOKEN = process.env.TUNNEL_TOKEN;
 
 // Dynamic Path Resolution
-// 1. Workspace: Assume we are in <workspace>/skills/clawbridge-dashboard
 const WORKSPACE_DIR = process.env.OPENCLAW_WORKSPACE || path.resolve(__dirname, '../../');
-// 2. State: Default to ~/.openclaw
 const HOME_DIR = os.homedir();
 const STATE_DIR = process.env.OPENCLAW_STATE_DIR || path.join(HOME_DIR, '.openclaw');
 
@@ -29,97 +27,46 @@ console.log(`[Init] State Dir: ${STATE_DIR}`);
 
 const LOG_DIR = path.join(__dirname, 'data/logs');
 const TOKEN_FILE = path.join(__dirname, 'data/token_stats/latest.json');
+const ID_FILE = path.join(__dirname, 'data/last_id.txt'); 
 const ANALYZE_SCRIPT = path.join(__dirname, 'scripts/analyze.js');
 
 app.use(express.json());
 
+// Load last ID from disk to prevent duplicates on restart
+let lastProcessedId = null;
+try {
+    if (fs.existsSync(ID_FILE)) {
+        lastProcessedId = fs.readFileSync(ID_FILE, 'utf8').trim();
+    }
+} catch (e) {}
+
 // --- Magic Link Auth Middleware ---
 app.use((req, res, next) => {
-    // 1. Pass if authenticated
     if (req.query.key === SECRET_KEY) return next();
     if (req.headers['x-claw-key'] === SECRET_KEY) return next();
-
-    // 2. Pass safe static assets
     if (req.path.match(/\.(png|jpg|jpeg|svg|gif|ico|css|js)$/)) return next();
-    if (req.path === '/manifest.json') return next(); // Allow PWA manifest
+    if (req.path === '/manifest.json') return next(); 
+    if (req.path.startsWith('/api')) return res.status(401).json({ error: 'Unauthorized' });
 
-    // 3. API calls fail hard
-    if (req.path.startsWith('/api')) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
-
-    // 4. HTML pages redirect to login prompt
-    return res.send(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta name="viewport" content="width=device-width, initial-scale=1">
-                <style>body{background:#0f172a;color:#fff;font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;margin:0}</style>
-            </head>
-            <body>
-                <script>
-                    const urlParams = new URLSearchParams(window.location.search);
-                    
-                    // 1. If URL has key but we are here -> Key was rejected by server
-                    if (urlParams.has('key')) {
-                        alert('❌ Access Denied: Invalid Key');
-                        localStorage.removeItem('claw_key');
-                        // Redirect to clean URL to restart flow
-                        window.location.href = window.location.pathname;
-                    }
-                    
-                    // 2. If we have a stored key (and clean URL), try to auto-login
-                    else if (localStorage.getItem('claw_key')) {
-                        const key = localStorage.getItem('claw_key');
-                        window.location.href = window.location.pathname + '?key=' + key;
-                    }
-                    
-                    // 3. No key, No storage -> Prompt User
-                    else {
-                        const input = prompt('🔑 ClawBridge Access Key:');
-                        if (input) {
-                            localStorage.setItem('claw_key', input);
-                            window.location.href = window.location.pathname + '?key=' + input;
-                        }
-                    }
-                </script>
-            </body>
-            </html>
-    `);
+    return res.send(`<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"><style>body{background:#0f172a;color:#fff;font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;margin:0}</style></head><body><script>const urlParams=new URLSearchParams(window.location.search);if(urlParams.has('key')){alert('❌ Access Denied: Invalid Key');localStorage.removeItem('claw_key');window.location.href=window.location.pathname}else if(localStorage.getItem('claw_key')){const key=localStorage.getItem('claw_key');window.location.href=window.location.pathname+'?key='+key}else{const input=prompt('🔑 ClawBridge Access Key:');if(input){localStorage.setItem('claw_key',input);window.location.href=window.location.pathname+'?key='+input}}</script></body></html>`);
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Helper: Resolve OpenClaw Binary
 function getOpenClawCommand() {
-    // 1. Env Var (User Override)
     if (process.env.OPENCLAW_PATH) return process.env.OPENCLAW_PATH;
-
-    // 2. Try standard command (works if in PATH)
-    try {
-        execSync('which openclaw');
-        return 'openclaw';
-    } catch (e) {}
-
-    // 3. Fallback: Hardcoded path for this specific environment (Clawdbot Standard Env)
-    // This is useful for systemd services where PATH might be minimal
+    try { execSync('which openclaw'); return 'openclaw'; } catch (e) {}
     const localPath = '/root/.nvm/versions/node/v22.22.0/bin/openclaw';
     if (fs.existsSync(localPath)) return localPath;
-
-    // 4. Give up, hope 'openclaw' works or user sets env
     return 'openclaw';
 }
 
-// Helper: Get Active Context
 function getActiveContext() {
     try {
-        // Standard V2 Path
         const sessionsPath = path.join(STATE_DIR, 'agents/main/sessions/sessions.json');
-        
-        // Fallback Paths
         const altPaths = [
             sessionsPath,
-            '/root/.openclaw/agents/main/sessions/sessions.json', // Known VM path
+            '/root/.openclaw/agents/main/sessions/sessions.json',
             path.join(WORKSPACE_DIR, '.openclaw/sessions/sessions.json'), 
             path.join(HOME_DIR, '.clawdbot/agents/main/sessions/sessions.json')
         ];
@@ -142,7 +89,7 @@ function getActiveContext() {
             }
         });
 
-        if (!latestSession || (Date.now() - maxTime > 15000)) return null;
+        if (!latestSession) return null;
 
         const logFile = latestSession.sessionFile;
         if (!fs.existsSync(logFile)) return null;
@@ -153,30 +100,35 @@ function getActiveContext() {
         for (const line of lines) {
             try {
                 const event = JSON.parse(line);
-                // Look for tool calls or thinking
-                if (event.type === 'tool_call' || (event.message && event.message.content)) {
-                     if (event.tool) return `🔧 ${event.tool} ${JSON.stringify(event.arguments || {}).substring(0, 50)}`;
-                }
                 
-                if (event.message && event.message.content) {
-                    const tool = event.message.content.find(c => c.type === 'toolCall');
+                if (event.type === 'message' && event.message && event.message.content) {
+                    const msgId = event.id;
+                    const content = event.message.content;
+                    const events = [];
+
+                    const thinking = content.find(c => c.type === 'thinking');
+                    if (thinking && thinking.thinking) {
+                        let text = thinking.thinking.replace(/^[#\*\- ]+/, '').replace(/\n/g, ' ').trim();
+                        if (text.length > 5000) text = text.substring(0, 5000) + '...';
+                        events.push(`🧠 ${text}`);
+                    }
+
+                    const tool = content.find(c => c.type === 'toolCall');
                     if (tool) {
                         let argStr = '';
                         if (tool.arguments) {
                             if (tool.name === 'web_search') argStr = `"${tool.arguments.query}"`;
                             else if (tool.name === 'read') argStr = tool.arguments.path || tool.arguments.file_path;
                             else if (tool.name === 'exec') argStr = tool.arguments.command;
+                            else if (tool.name === 'message') argStr = JSON.stringify(tool.arguments).substring(0,5000); 
                             else argStr = JSON.stringify(tool.arguments);
                         }
-                        if (argStr && argStr.length > 500) argStr = argStr.substring(0, 500) + '...';
-                        return `🔧 ${tool.name} ${argStr}`;
+                        if (argStr && argStr.length > 5000) argStr = argStr.substring(0, 5000) + '...';
+                        events.push(`🔧 ${tool.name} ${argStr}`);
                     }
-                    
-                    const thinking = event.message.content.find(c => c.type === 'thinking');
-                    if (thinking && thinking.thinking) {
-                        let text = thinking.thinking.replace(/^[#\*\- ]+/, '').replace(/\n/g, ' ').trim();
-                        if (text.length > 500) text = text.substring(0, 500) + '...';
-                        return `🧠 ${text}`;
+
+                    if (events.length > 0) {
+                        return { id: msgId, events: events };
                     }
                 }
             } catch(e) {}
@@ -185,22 +137,15 @@ function getActiveContext() {
     return null;
 }
 
-// Helper: Save Activity (JSONL Append)
-let lastRecordedTask = 'System Idle';
-
 function logActivity(task) {
     if (!task || task === 'System Idle') return;
-    if (task === lastRecordedTask) return;
-    
-    lastRecordedTask = task;
 
     const now = new Date();
     const ts = now.toISOString();
     const entry = { ts, task };
     
-    // Path: data/logs/YYYY-MM/DD.jsonl
-    const monthDir = path.join(LOG_DIR, ts.substring(0, 7)); // YYYY-MM
-    const logFile = path.join(monthDir, `${ts.substring(8, 10)}.jsonl`); // DD.jsonl
+    const monthDir = path.join(LOG_DIR, ts.substring(0, 7)); 
+    const logFile = path.join(monthDir, `${ts.substring(8, 10)}.jsonl`); 
 
     try {
         if (!fs.existsSync(monthDir)) fs.mkdirSync(monthDir, { recursive: true });
@@ -210,7 +155,6 @@ function logActivity(task) {
     }
 }
 
-// --- File Watcher ---
 let fileState = {}; 
 const WATCH_DIRS = [path.join(WORKSPACE_DIR, 'memory'), path.join(WORKSPACE_DIR, 'scripts')];
 const WATCH_FILES = ['MEMORY.md', 'AGENTS.md', 'HEARTBEAT.md'].map(f => path.join(WORKSPACE_DIR, f));
@@ -255,32 +199,24 @@ function scanFile(filePath) {
     } catch(e) {}
 }
 
-// Helper: Get Versions
 let cachedVersions = null;
 function getVersions() {
-    // Note: Removed caching to support dynamic updates on refresh if needed
-    // if (cachedVersions) return cachedVersions;
-    
     let dashboard = 'Unknown';
     let core = 'Unknown';
     
-    // 1. Dashboard Version (from local package.json)
     try {
         const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
         dashboard = pkg.version;
     } catch(e) {}
 
-    // 2. OpenClaw Core Version
     try {
         const cmd = `${getOpenClawCommand()} --version`;
         core = execSync(cmd).toString().trim();
     } catch(e) {
-        // Fallback: try reading core package.json from standard paths
         const paths = [
              path.join(HOME_DIR, '.nvm/versions/node/v22.22.0/lib/node_modules/openclaw/package.json'),
              '/usr/local/lib/node_modules/openclaw/package.json'
         ];
-        
         for (const p of paths) {
              try {
                 if (fs.existsSync(p)) {
@@ -291,31 +227,26 @@ function getVersions() {
              } catch(err) {}
         }
     }
-
     cachedVersions = { dashboard, core };
     return cachedVersions;
 }
 
-// Monitor Core
 function checkSystemStatus(callback) {
     checkFileChanges();
 
     exec("df -h / | awk 'NR==2 {print $5}'", (errDisk, stdoutDisk) => {
         const diskUsage = stdoutDisk ? stdoutDisk.trim() : '--%';
-
-        // Get Gateway PID
         const gatewayPidCmd = "pgrep -f 'openclaw gateway' | head -n 1";
         
         exec(gatewayPidCmd, (errGw, stdoutGw) => {
             const gatewayPid = stdoutGw ? stdoutGw.trim() : null;
-
             const cmd = "ps -eo pid,pcpu,comm,args --sort=-pcpu | head -n 20";
             exec(cmd, (err, stdout) => {
                 if (err) return callback({ status: 'error', task: 'Monitor Error' });
 
                 const lines = stdout.trim().split('\n').slice(1);
                 let activities = [];
-                let runningScripts = []; // New: Track specific script processes
+                let runningScripts = []; 
                 let totalCpu = 0;
                 let topProc = null;
 
@@ -327,45 +258,43 @@ function checkSystemStatus(callback) {
                     const args = parts.slice(3).join(' ');
 
                     if (!isNaN(cpu)) totalCpu += cpu;
-                    
                     if (index === 0) topProc = `${comm} (${Math.round(cpu)}%)`;
 
                     if (comm === 'node' && args.includes('scripts/')) {
                         const script = args.match(/scripts\/([a-zA-Z0-9_.-]+)/)?.[1] || 'Script';
-                        activities.push(`📜 ${script}`);
+                        activities.push(`📜 Running Script: ${script}`);
                         runningScripts.push({ pid, name: script });
                     }
                     
                     if (['grep', 'find', 'curl', 'wget', 'git', 'tar', 'python', 'python3'].includes(comm)) {
                         let detail = args.split(' ').pop();
                         if (comm === 'grep') detail = args.match(/"([^"]+)"/)?.[1] || detail;
-                        if (detail && detail.length > 500) detail = detail.substring(0, 500) + '...';
+                        if (detail && detail.length > 5000) detail = detail.substring(0, 5000) + '...';
                         activities.push(`🔧 ${comm} ${detail}`);
                     }
                 });
 
                 activities = [...new Set(activities)];
-                const context = getActiveContext();
+                const ctx = getActiveContext();
                 
                 let status = 'idle';
                 let taskText = 'System Idle';
                 
-                if (context) {
+                if (ctx) {
                     status = 'busy';
-                    taskText = context;
+                    if (ctx.id !== lastProcessedId) {
+                        ctx.events.forEach(evt => logActivity(evt));
+                        lastProcessedId = ctx.id;
+                        try { fs.writeFileSync(ID_FILE, lastProcessedId); } catch(e){}
+                    }
+                    taskText = ctx.events[ctx.events.length - 1];
                 } else if (activities.length > 0) {
                     status = 'busy';
                     taskText = activities.join(', ');
-                } else if (totalCpu > 70.0) { // Changed to 70% to reduce noise
+                    logActivity(taskText);
+                } else if (totalCpu > 70.0) { 
                     status = 'busy';
                     taskText = `⚡ High CPU: ${topProc || 'Unknown'}`;
-                }
-
-                if (taskText === 'System Idle') {
-                    if (lastRecordedTask !== 'System Idle') {
-                        lastRecordedTask = 'System Idle'; 
-                    }
-                } else {
                     logActivity(taskText);
                 }
 
@@ -387,23 +316,19 @@ function checkSystemStatus(callback) {
         });
     });
 }
+
 app.get('/api/status', (req, res) => {
     checkSystemStatus((data) => res.json(data));
 });
 
-// API: Logs (JSONL Reader)
 app.get('/api/logs', (req, res) => {
     const limit = parseInt(req.query.limit) || 100;
-    const dateStr = req.query.date || new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-    
-    // Construct path
+    const dateStr = req.query.date || new Date().toISOString().slice(0, 10); 
     const month = dateStr.slice(0, 7);
     const day = dateStr.slice(8, 10);
     const logFile = path.join(LOG_DIR, month, `${day}.jsonl`);
 
-    if (!fs.existsSync(logFile)) {
-        return res.json([]);
-    }
+    if (!fs.existsSync(logFile)) return res.json([]);
 
     try {
         const content = fs.readFileSync(logFile, 'utf8');
@@ -411,186 +336,119 @@ app.get('/api/logs', (req, res) => {
         const logs = [];
         for (let i = lines.length - 1; i >= 0; i--) {
             if (!lines[i]) continue;
-            try {
-                logs.push(JSON.parse(lines[i]));
-            } catch(e) {}
+            try { logs.push(JSON.parse(lines[i])); } catch(e) {}
             if (logs.length >= limit) break;
         }
         res.json(logs);
-    } catch(e) {
-        console.error(e);
-        res.status(500).json({ error: 'Log read failed' });
-    }
+    } catch(e) { res.status(500).json({ error: 'Log read failed' }); }
 });
 
-// API: Tokens (Auth Protected)
 app.get('/api/tokens', (req, res) => {
     if (!fs.existsSync(TOKEN_FILE)) return res.json({});
     try {
         const data = fs.readFileSync(TOKEN_FILE, 'utf8');
         res.json(JSON.parse(data));
-    } catch(e) {
-        res.status(500).json({ error: 'Read failed' });
-    }
+    } catch(e) { res.status(500).json({ error: 'Read failed' }); }
 });
 
-// API: Trigger Token Analysis
 app.post('/api/tokens/refresh', (req, res) => {
     runAnalyzer();
-    res.json({ status: 'triggered', message: 'Analysis started. Refresh in a few seconds.' });
+    res.json({ status: 'triggered', message: 'Analysis started.' });
 });
 
-// Helper: Run Analyzer (Child Process)
 function runAnalyzer() {
-    const nodePath = process.execPath; // Use the exact same node binary running this script
+    const nodePath = process.execPath; 
     exec(`"${nodePath}" "${ANALYZE_SCRIPT}"`, (err, stdout, stderr) => {
         if (err) console.error('[Analyzer] Error:', stderr);
-        // else console.log('[Analyzer] Updated stats');
     });
 }
 
-// Background Loop & Scheduler
-setInterval(() => {
-    checkSystemStatus(() => {});
-}, 3000);
-
-// Run Analyzer on Start + Every Hour
+setInterval(() => { checkSystemStatus(() => {}); }, 3000);
 runAnalyzer();
 setInterval(runAnalyzer, 60 * 60 * 1000);
 
-// API: Kill (Graceful Shutdown)
 app.post('/api/kill', (req, res) => {
-    // 1. Try SIGTERM (Graceful)
     exec("pkill -SIGTERM -f 'node scripts/'", (err) => {
-        // 2. Wait 3s, then check and Force Kill if needed
         setTimeout(() => {
             exec("pgrep -f 'node scripts/'", (err, stdout) => {
-                if (!err && stdout) {
-                    console.log('Force killing stuck scripts...');
-                    exec("pkill -SIGKILL -f 'node scripts/'");
-                }
+                if (!err && stdout) exec("pkill -SIGKILL -f 'node scripts/'");
             });
         }, 3000);
-        res.json({status:'stopping', message: 'Sent SIGTERM. Will force kill in 3s if needed.'});
+        res.json({status:'stopping', message: 'Sent SIGTERM.'});
     });
 });
 
-// API: Restart Gateway
 app.post('/api/gateway/restart', (req, res) => {
-    // Graceful Stop first
     exec("pkill -SIGTERM -f 'openclaw gateway' || true", () => {
         setTimeout(() => {
-            // Force start
             const cmd = `${getOpenClawCommand()} gateway start --background`;
             exec(cmd, (err, stdout, stderr) => {
-                 if (err) {
-                     console.error('Restart failed:', stderr);
-                     res.json({status:'error', message: stderr});
-                 } else {
-                     res.json({status:'restarted'});
-                 }
+                 if (err) res.json({status:'error', message: stderr});
+                 else res.json({status:'restarted'});
             });
         }, 2000);
     });
 });
 
-// API: Cron
 app.get('/api/cron', (req, res) => {
     const cmd = `${getOpenClawCommand()} cron list --json`;
-    
     exec(cmd, { maxBuffer: 1024 * 1024 * 5 }, (err, stdout, stderr) => {
         if (err) {
-            console.error('[Cron API Error]', stderr || err.message);
-            // Fallback to static file if CLI fails
             try {
-                // Try V2 path first
                 const v2Path = path.join(STATE_DIR, 'cron/jobs.json');
                 let fileData;
-                if (fs.existsSync(v2Path)) {
-                    fileData = fs.readFileSync(v2Path, 'utf8');
-                } else {
-                    // Fallback to legacy path
-                    fileData = fs.readFileSync(path.join(HOME_DIR, '.clawdbot/cron/jobs.json'), 'utf8');
-                }
+                if (fs.existsSync(v2Path)) fileData = fs.readFileSync(v2Path, 'utf8');
+                else fileData = fs.readFileSync(path.join(HOME_DIR, '.clawdbot/cron/jobs.json'), 'utf8');
                 const json = JSON.parse(fileData);
                 return res.json(json.jobs || []);
-            } catch(e) {
-                console.error('[Cron File Error]', e.message);
-                return res.json([]); 
-            }
+            } catch(e) { return res.json([]); }
         }
-        
         try {
             const data = JSON.parse(stdout);
             if (data.jobs) return res.json(data.jobs);
             return res.json([]);
-        } catch (e) {
-            console.error('[Cron Parse Error]', e.message);
-            res.json([]);
-        }
+        } catch (e) { res.json([]); }
     });
 });
 
-// API: Memory Feed
 app.get('/api/memory', (req, res) => {
-    // 1. List available dates
     if (req.query.list === 'true') {
         const memoryDir = path.join(WORKSPACE_DIR, 'memory');
         if (!fs.existsSync(memoryDir)) return res.json([]);
-        
         try {
             const files = fs.readdirSync(memoryDir)
                 .filter(f => f.match(/^\d{4}-\d{2}-\d{2}\.md$/))
-                .sort()
-                .reverse(); // Newest first
+                .sort().reverse(); 
             return res.json(files.map(f => f.replace('.md', '')));
         } catch(e) { return res.json([]); }
     }
 
-    // 2. Get specific date content
     const tz = 'Asia/Shanghai';
-    let date = req.query.date;
-    if (!date) {
-        date = new Date().toLocaleDateString('en-CA', { timeZone: tz });
-    }
-    
-    // Safety check path traversal
+    let date = req.query.date || new Date().toLocaleDateString('en-CA', { timeZone: tz });
     if (!date.match(/^\d{4}-\d{2}-\d{2}$/)) return res.status(400).json({error: 'Invalid date'});
 
     const memPath = path.join(WORKSPACE_DIR, 'memory', `${date}.md`);
-    
-    if (!fs.existsSync(memPath)) {
-        return res.json({ date, content: '*No memory log found for this date.*' });
-    }
+    if (!fs.existsSync(memPath)) return res.json({ date, content: '*No memory log found.*' });
     
     try {
         const content = fs.readFileSync(memPath, 'utf8');
         res.json({ date, content });
-    } catch (e) {
-        res.status(500).json({ error: 'Failed to read memory' });
-    }
+    } catch (e) { res.status(500).json({ error: 'Failed to read memory' }); }
 });
 
 app.post('/api/run/:id', (req, res) => {
-    // Use dynamic command
     exec(`${getOpenClawCommand()} cron run ${req.params.id}`);
     res.json({status:'triggered'});
 });
 
-// API: Get Config (Safe subset)
 app.get('/api/config', (req, res) => {
-    // Return only minimal flags if needed, or nothing
-    res.json({
-        hasToken: !!process.env.TUNNEL_TOKEN
-    });
+    res.json({ hasToken: !!process.env.TUNNEL_TOKEN });
 });
 
-// WS Heartbeat
 setInterval(() => {
     wss.clients.forEach(c => c.send(JSON.stringify({type:'heartbeat', ts:Date.now()})));
 }, 2000);
 
-// Main
 async function main() {
     server.listen(PORT, '::', async () => {
         console.log(`[Dashboard] Local: http://[::]:${PORT}`);
@@ -599,9 +457,7 @@ async function main() {
                 await tunnel.downloadBinary();
                 const url = await tunnel.startTunnel(PORT, TUNNEL_TOKEN);
                 console.log(`\n🚀 CLAWBRIDGE DASHBOARD LIVE:\n👉 ${url}\n`);
-            } catch (e) {
-                console.error('Tunnel Failed:', e);
-            }
+            } catch (e) { console.error('Tunnel Failed:', e); }
         }
     });
 }
