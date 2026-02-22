@@ -138,6 +138,7 @@ WorkingDirectory=$APP_DIR
 ExecStart=$NODE_PATH index.js
 Restart=always
 Environment=NODE_ENV=production
+Environment=PATH=$PATH
 EnvironmentFile=$APP_DIR/.env
 
 [Install]
