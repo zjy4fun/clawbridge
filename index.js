@@ -19,7 +19,33 @@ const SECRET_KEY = process.env.ACCESS_KEY || 'default-insecure';
 const TUNNEL_TOKEN = process.env.TUNNEL_TOKEN;
 
 // Dynamic Path Resolution
-const WORKSPACE_DIR = process.env.OPENCLAW_WORKSPACE || path.resolve(__dirname, '../../');
+function findWorkspace() {
+    // 1. Explicit env var (Highest priority)
+    if (process.env.OPENCLAW_WORKSPACE) return process.env.OPENCLAW_WORKSPACE;
+
+    // 2. Relative path (Default installation structure: .../openclaw/skills/clawbridge)
+    const relative = path.resolve(__dirname, '../../');
+    if (fs.existsSync(path.join(relative, 'memory'))) return relative;
+
+    // 3. Common path probing (For standalone/sandbox installs)
+    const candidates = [
+        '/root/clawd',
+        path.join(HOME_DIR, 'clawd'),
+        process.cwd()
+    ];
+
+    for (const p of candidates) {
+        if (fs.existsSync(path.join(p, 'memory'))) {
+            console.log(`[Init] Probed workspace found: ${p}`);
+            return p;
+        }
+    }
+
+    // 4. Fallback
+    return relative;
+}
+
+const WORKSPACE_DIR = findWorkspace();
 const HOME_DIR = os.homedir();
 const STATE_DIR = process.env.OPENCLAW_STATE_DIR || path.join(HOME_DIR, '.openclaw');
 
