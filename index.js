@@ -18,6 +18,9 @@ const PORT = process.env.PORT || 3000;
 const SECRET_KEY = process.env.ACCESS_KEY || 'default-insecure';
 const TUNNEL_TOKEN = process.env.TUNNEL_TOKEN;
 
+const HOME_DIR = os.homedir();
+const STATE_DIR = process.env.OPENCLAW_STATE_DIR || path.join(HOME_DIR, '.openclaw');
+
 // Dynamic Path Resolution
 function findWorkspace() {
     // 1. Explicit env var (Highest priority)
@@ -47,8 +50,6 @@ function findWorkspace() {
 }
 
 const WORKSPACE_DIR = findWorkspace();
-const HOME_DIR = os.homedir();
-const STATE_DIR = process.env.OPENCLAW_STATE_DIR || path.join(HOME_DIR, '.openclaw');
 
 console.log(`[Init] Workspace: ${WORKSPACE_DIR}`);
 console.log(`[Init] State Dir: ${STATE_DIR}`);
