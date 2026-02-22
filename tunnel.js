@@ -25,8 +25,8 @@ async function downloadBinary() {
 
 function startTunnel(port, token) {
     return new Promise((resolve, reject) => {
-        // Stop existing
-        spawn('pkill', ['-f', BIN_PATH]);
+        // Stop existing (Synchronous to avoid killing self)
+        try { require('child_process').execSync(`pkill -f ${BIN_NAME}`); } catch(e){}
 
         const args = token 
             ? ['tunnel', 'run', '--token', token]
