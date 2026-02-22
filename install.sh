@@ -10,6 +10,7 @@ echo "-----------------------"
 
 TARGET_DIR="skills/clawbridge"
 NEEDS_BUILD=true
+BACKUP_MSG=""
 
 # --- STRATEGY SELECTION ---
 if command -v git &> /dev/null; then
@@ -91,6 +92,8 @@ else
     fi
 
     # 2. Check & Backup Existing
+    TS=$(date +%Y%m%d_%H%M%S)
+    
     if [ -d "$TARGET_DIR" ]; then
         # Check current version from package.json
         if [ -f "$TARGET_DIR/package.json" ]; then
@@ -99,22 +102,22 @@ else
             CURRENT_VER="unknown"
         fi
         
-        # If versions match (simple string check), skip?
-        # Tarball doesn't have git history, so we might force update to be safe, or check simple version.
-        # Let's force update but backup first.
-        
         BACKUP_DIR="skills/_backups"
         mkdir -p "$BACKUP_DIR"
-        TS=$(date +%Y%m%d_%H%M%S)
         BACKUP_FILE="$BACKUP_DIR/clawbridge_v${CURRENT_VER}_${TS}.tar.gz"
         
         echo "📦 Backing up current version to $BACKUP_FILE..."
         # Ignore node_modules in backup to save space/time
         tar --exclude='node_modules' -czf "$BACKUP_FILE" -C "skills" "clawbridge"
+        
+        BACKUP_MSG="♻️  Previous version backed up to: $BACKUP_FILE"
     fi
 
     # 3. Download & Prepare Temp
-    TMP_DIR=$(mktemp -d)
+    # Unique temp dir to prevent collisions
+    TMP_DIR_NAME="clawbridge_${VER_STRING}_${TS}"
+    TMP_DIR=$(mktemp -d -t "${TMP_DIR_NAME}.XXXXXX")
+    
     echo "⬇️  Downloading $VER_STRING..."
     curl -sL "$DOWNLOAD_URL" | tar -xz -C "$TMP_DIR"
     
@@ -162,3 +165,9 @@ echo "🚀 Configuring..."
 chmod +x setup.sh
 # Force quick mode for zero-friction
 ./setup.sh --quick
+
+# Final Notification
+if [ ! -z "$BACKUP_MSG" ]; then
+    echo ""
+    echo "$BACKUP_MSG"
+fi
