@@ -274,6 +274,7 @@ if [[ "$ENABLE_TUNNEL" =~ ^[Yy]$ ]] || [ "$USE_VPN" = true ]; then
         systemctl --user restart "$SERVICE_NAME"
     fi
 fi
+fi
 
 # 6. Summary
 IP=$(hostname -I | awk '{print $1}')
