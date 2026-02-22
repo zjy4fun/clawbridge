@@ -178,3 +178,7 @@ if [ ! -z "$BACKUP_MSG" ]; then
     echo ""
     echo "$BACKUP_MSG"
 fi
+
+echo ""
+echo "✅ [Agent Notice] Update successfully completed. The dashboard service has been restarted."
+echo "👉 Please verify the version on the dashboard and inform the user."
