@@ -30,7 +30,8 @@ function findWorkspace() {
     // 3. Common path probing (For standalone/sandbox installs)
     const candidates = [
         '/root/clawd',
-        path.join(HOME_DIR, 'clawd'),
+        path.join(HOME_DIR, 'clawd'), // Legacy clawdbot/clawd path
+        path.join(HOME_DIR, '.openclaw'), // Standard OpenClaw storage
         process.cwd()
     ];
 
