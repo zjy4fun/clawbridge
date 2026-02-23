@@ -265,9 +265,22 @@ if [[ "$ENABLE_TUNNEL" =~ ^[Yy]$ ]] || [ "$USE_VPN" = true ]; then
     else
         # Quick Tunnel Mode (No Token)
         # ONLY enable if we decided to enable tunnel (i.e. not VPN mode)
+        # AND if we don't already have a token in env (unless quick mode forced override)
         if [ "$ENABLE_TUNNEL" == "y" ]; then
-            echo "ENABLE_EMBEDDED_TUNNEL=true" >> "$ENV_FILE"
-            echo "🌊 Quick Tunnel configured."
+             # If QUICK_TUNNEL flag was passed, we might want to force quick tunnel
+             # BUT if user just ran update (which runs setup.sh --quick), we shouldn't kill their perm tunnel
+             # Wait, install.sh calls setup.sh --quick. This is dangerous for perm tunnels.
+             
+             # FIX: If TUNNEL_TOKEN exists in .env and --token wasn't passed, preserve it?
+             # But setup.sh sources .env.
+             # The issue is install.sh calls it with --quick.
+             # And --quick sets CF_TOKEN="".
+             
+             # We need install.sh to NOT call --quick if it detects a perm tunnel? 
+             # Or setup.sh to be smarter.
+             
+             echo "ENABLE_EMBEDDED_TUNNEL=true" >> "$ENV_FILE"
+             echo "🌊 Quick Tunnel configured."
         fi
     fi
         

@@ -152,9 +152,24 @@ function getActiveContext() {
         const tail = execSync(`tail -n 50 "${logFile}"`).toString();
         const lines = tail.trim().split('\n').reverse();
 
+        // 🛡️ FRESHNESS CHECK (Added 2026-02-23)
+        // Prevent ingestion of stale logs during recovery/restart loops
+        const FRESHNESS_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+        const now = Date.now();
+
         for (const line of lines) {
             try {
                 const event = JSON.parse(line);
+                
+                // --- Freshness Filter ---
+                if (event.time) {
+                    const evtTime = new Date(event.time).getTime();
+                    if (!isNaN(evtTime) && (now - evtTime > FRESHNESS_WINDOW_MS)) {
+                        // Skip this specific event if it's too old
+                        continue; 
+                    }
+                }
+                // ------------------------
                 
                 // 1. Capture Assistant Messages (Thinking + Tool Call Requests)
                 if (event.type === 'message' && event.message && event.message.role === 'assistant' && event.message.content) {
