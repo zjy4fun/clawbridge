@@ -329,8 +329,9 @@ if [ "$QUICK_TUNNEL" = true ] || [ -z "$CF_TOKEN" ]; then
     fi
 fi
 
-# 7. Initialize Analytics (Cold Start Fix)
-echo -e "\n📊 Initializing data analytics..."
+# 7. Initialize Analytics & Pricing (Cold Start Fix)
+echo -e "\n📊 Initializing data analytics & syncing prices..."
+"$NODE_PATH" "$APP_DIR/scripts/sync_openrouter_prices.js" >/dev/null 2>&1 || true
 "$NODE_PATH" "$APP_DIR/scripts/analyze.js" >/dev/null 2>&1 || true
 
 echo -e "🔑 Secret Key: $RAND_KEY"

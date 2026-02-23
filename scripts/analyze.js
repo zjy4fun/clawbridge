@@ -11,7 +11,6 @@ const CACHE_FILE = path.join(DATA_DIR, 'cache.json');
 
 // History Path
 const HOME_DIR = os.homedir();
-// V2.1 Path Update: Support both old (.clawdbot) and new (.openclaw) paths
 const NEW_PATH = path.join(HOME_DIR, '.openclaw/sessions/');
 const OLD_PATH = path.join(HOME_DIR, '.clawdbot/agents/main/sessions/');
 
@@ -27,7 +26,7 @@ function getLocalDate(date = new Date()) {
     return date.toLocaleString('en-CA', { timeZone: APP_TIMEZONE }).split(',')[0].trim();
 }
 
-// Cost Config (Load from file or Default)
+// Cost Config
 let COST_MAP = {
     'default': { input: 0.10, output: 0.40 }
 };
@@ -35,25 +34,19 @@ let COST_MAP = {
 if (fs.existsSync(PRICING_FILE)) {
     try {
         COST_MAP = { ...COST_MAP, ...JSON.parse(fs.readFileSync(PRICING_FILE, 'utf8')) };
-    } catch(e) {
-        console.error('Error loading pricing.json, using defaults');
-    }
-} else {
-    // Fallback defaults if file missing
-    COST_MAP = {
-        'google/gemini-3-pro-preview': { input: 0, output: 0 },
-        'google/gemini-2.0-flash-001': { input: 0.10, output: 0.40 },
-        'anthropic/claude-3-5-sonnet-20240620': { input: 3.00, output: 15.00 },
-        'deepseek/deepseek-chat': { input: 0.14, output: 0.28 },
-        'openai/gpt-4o': { input: 2.50, output: 10.00 },
-        'default': { input: 0.10, output: 0.40 }
-    };
+    } catch(e) {}
 }
 
-function calcCost(model, input, output) {
+function calcCost(model, input, output, cacheRead = 0) {
     const key = Object.keys(COST_MAP).find(k => model && model.includes(k)) || 'default';
     const rate = COST_MAP[key];
-    return (input / 1000000 * rate.input) + (output / 1000000 * rate.output);
+    
+    // Add cacheRead if available (Gemini specific, usually 50% or 25% of input cost)
+    const cacheRate = rate.cacheRead || (rate.input * 0.25); 
+
+    return (input / 1000000 * rate.input) + 
+           (output / 1000000 * rate.output) + 
+           (cacheRead / 1000000 * cacheRate);
 }
 
 // Core Logic: Parse Single File
@@ -61,23 +54,28 @@ function processFile(filePath) {
     const content = fs.readFileSync(filePath, 'utf8');
     const lines = content.trim().split('\n');
     
-    let maxInput = 0;
-    let maxOutput = 0;
-    let maxCost = 0;
+    let totalInput = 0;
+    let totalOutput = 0;
+    let totalCacheRead = 0;
+    let totalCost = 0;
     let lastModel = 'unknown';
 
+    // 🛡️ REPAIR (2026-02-24): Use SUM instead of MAX to fix undercounting
+    // Also capture cacheRead for Gemini.
     lines.forEach(line => {
         try {
             const entry = JSON.parse(line);
-            let usage = entry.usage || (entry.message && entry.message.usage);
+            if (entry.type !== 'message') return;
 
+            const usage = entry.usage || (entry.message && entry.message.usage);
             if (usage) {
-                const input = usage.input || usage.inputTokens || 0;
-                const output = usage.output || usage.outputTokens || 0;
-                if (input > maxInput) maxInput = input;
-                if (output > maxOutput) maxOutput = output;
+                // If it's a message event, we sum the usage of this specific turn
+                totalInput += (usage.input || usage.inputTokens || 0);
+                totalOutput += (usage.output || usage.outputTokens || 0);
+                totalCacheRead += (usage.cacheRead || 0);
+
                 if (usage.cost && typeof usage.cost.total === 'number') {
-                    if (usage.cost.total > maxCost) maxCost = usage.cost.total;
+                    totalCost += usage.cost.total;
                 }
             }
             
@@ -86,15 +84,16 @@ function processFile(filePath) {
         } catch(e) {}
     });
 
-    let finalCost = maxCost;
-    if (finalCost === 0 && (maxInput > 0 || maxOutput > 0)) {
-        finalCost = calcCost(lastModel, maxInput, maxOutput);
+    // If internal cost tracking is missing, fallback to pricing map
+    if (totalCost === 0 && (totalInput > 0 || totalOutput > 0)) {
+        totalCost = calcCost(lastModel, totalInput, totalOutput, totalCacheRead);
     }
 
     return {
-        input: maxInput,
-        output: maxOutput,
-        cost: finalCost,
+        input: totalInput,
+        output: totalOutput,
+        cacheRead: totalCacheRead,
+        cost: totalCost,
         model: lastModel
     };
 }
@@ -107,7 +106,6 @@ async function analyze() {
         return;
     }
 
-    // 1. Load Cache
     let cache = {};
     try {
         if (fs.existsSync(CACHE_FILE)) {
@@ -116,38 +114,29 @@ async function analyze() {
     } catch(e) {}
 
     const files = fs.readdirSync(HISTORY_DIR).filter(f => f.endsWith('.jsonl'));
-    const newCache = {}; // Rebuild cache to prune deleted files
+    const newCache = {}; 
     
-    // Aggregators
     const history = {}; 
     const grandTotal = { input: 0, output: 0, cost: 0, models: {} };
-    let freshCount = 0;
 
-    // 2. Scan & Process
     files.forEach(file => {
         try {
             const filePath = path.join(HISTORY_DIR, file);
             const stat = fs.statSync(filePath);
             const mtime = stat.mtimeMs;
-            const dateStr = getLocalDate(stat.mtime); // Group by File Date
+            const dateStr = getLocalDate(stat.mtime);
 
             let stats;
-
-            // Cache Hit?
             if (cache[file] && cache[file].mtime === mtime) {
                 stats = cache[file].stats;
             } else {
-                // Cache Miss - Reprocess
                 stats = processFile(filePath);
-                freshCount++;
             }
 
-            // Update Cache
             newCache[file] = { mtime, stats };
 
-            // Aggregate
-            if (stats.model && stats.model.includes('delivery-mirror')) {
-                // Skip delivery-mirror model costs as per user request
+            if (stats.model && (stats.model.includes('delivery-mirror') || stats.model === 'unknown')) {
+                // Skip
             } else {
                 if (!history[dateStr]) history[dateStr] = { input: 0, output: 0, cost: 0 };
                 history[dateStr].input += stats.input;
@@ -164,13 +153,9 @@ async function analyze() {
                 grandTotal.models[m].output += stats.output;
                 grandTotal.models[m].cost += stats.cost;
             }
-
-        } catch (e) {
-            // console.error(`Failed ${file}: ${e.message}`);
-        }
+        } catch (e) {}
     });
 
-    // 3. Finalize Output
     const todayStr = getLocalDate();
     const todayUsage = history[todayStr] || { input: 0, output: 0, cost: 0 };
 
@@ -188,12 +173,8 @@ async function analyze() {
     };
 
     if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-    
-    // Write Cache & Output
-    fs.writeFileSync(CACHE_FILE, JSON.stringify(newCache, null, 2)); // Save for next time
-    fs.writeFileSync(OUTPUT_FILE, JSON.stringify(finalData, null, 2)); // Frontend consumption
-
-    // console.log(`[Analyzer] Done. Files: ${files.length} (Fresh: ${freshCount}). Cost: $${grandTotal.cost.toFixed(4)}`);
+    fs.writeFileSync(CACHE_FILE, JSON.stringify(newCache, null, 2));
+    fs.writeFileSync(OUTPUT_FILE, JSON.stringify(finalData, null, 2));
 }
 
 analyze();
