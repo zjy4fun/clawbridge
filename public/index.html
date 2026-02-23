@@ -1546,6 +1546,9 @@
                         chart.innerHTML = '';
                         labels.innerHTML = '';
                         const days = Object.keys(data.history).sort().slice(-7);
+                        // Use server timezone for "today" comparison
+                        const serverTz = data.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+                        const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: serverTz });
                         if (days.length > 0) {
                             const maxCost = Math.max(...days.map(d => data.history[d].cost)) || 0.01;
                             days.forEach(day => {
@@ -1556,7 +1559,7 @@
                                 bar.style.height = height + '%';
                                 bar.style.backgroundColor = 'var(--accent)';
                                 bar.style.borderRadius = '4px 4px 0 0';
-                                bar.style.opacity = day === new Date().toISOString().split('T')[0] ? '1' : '0.4';
+                                bar.style.opacity = day === todayStr ? '1' : '0.4';
                                 bar.onclick = () => {
                                     Array.from(chart.children).forEach(c => c.style.opacity = '0.4');
                                     bar.style.opacity = '1';
