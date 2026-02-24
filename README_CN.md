@@ -79,5 +79,10 @@ curl -sL https://clawbridge.app/install.sh | bash
 *   **前端**: Vanilla JS - 无需编译，秒开。
 *   **穿透**: Cloudflared
 
+## 鸣谢 (Credits)
+
+特别感谢社区成员对 ClawBridge 的改进建议：
+- [@yaochao](https://github.com/yaochao) 协助发现了关键的安全性漏洞与环境移植问题 (#1, #2, #4, #5, #6)。
+
 ---
 *MIT License. Built for the OpenClaw Community.*

@@ -82,5 +82,10 @@ Want a fixed URL like `dash.yoursite.com`?
 *   **Frontend**: Vanilla JS - Zero build step, instant load.
 *   **Tunnel**: Cloudflared
 
+## Credits
+
+Special thanks to our community for helping improve ClawBridge:
+- [@yaochao](https://github.com/yaochao) for reporting critical security and portability issues (#1, #2, #4, #5, #6).
+
 ---
 *MIT License. Built for the OpenClaw Community.*
