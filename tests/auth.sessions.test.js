@@ -89,3 +89,19 @@ describe('checkAuthRateLimit()', () => {
         expect(checkAuthRateLimit(ip)).toBe(true);
     });
 });
+
+describe('Session pruning', () => {
+    test('trims store to ≤50 entries when 101 sessions are added', () => {
+        const { activeSessions } = require('../src/auth/sessions');
+        activeSessions.clear(); // start clean
+
+        for (let i = 0; i < 101; i++) {
+            addSession(generateSessionToken());
+        }
+
+        // Pruning kicks in at >100 — store should have been trimmed
+        expect(activeSessions.size).toBeLessThanOrEqual(50);
+
+        activeSessions.clear(); // clean up for other tests
+    });
+});
