@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Brute-force protection: max 10 login attempts per IP per 60s.
 - Mandatory confirmation for high-risk endpoints (`/api/kill`).
 - Rate limiting for destructive endpoints.
+- Jest + Supertest test suite with unit and API integration tests. (#7)
+- ESLint + Prettier code style enforcement. (#7)
+- GitHub Actions CI workflow running tests and lint on every push. (#7)
+- Split `public/index.html` into separate `public/css/dashboard.css` and `public/js/dashboard.js` for maintainability.
 
 ### Fixed
 - Security: Replaced URL query auth with HttpOnly cookie-based sessions. (Thanks [@yaochao](https://github.com/yaochao) for reporting #1)
