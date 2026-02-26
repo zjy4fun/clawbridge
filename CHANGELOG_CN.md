@@ -6,11 +6,17 @@
 
 ## [1.1.1] - 2026-02-26
 
+### 新增
+- **全面支持 macOS**: ClawBridge 现在正式兼容 macOS 系统 (支持 Intel 与 Apple Silicon)。
+- **服务管理 (Launchd)**: 在 macOS 上支持通过 `launchd` (.plist agents) 进行后台运行和自动重启。
+- **跨平台 CI**: GitHub Actions 自动化测试和 lint 现在同时在 Linux 和 macOS 上运行，确保稳定性。
+
 ### 修复
-- 鲁棒的 IP 检测：用弹性的多回退逻辑（`ip route`、`hostname`、`ifconfig`）替换了脆弱的 `hostname -I`，以防止在某些 Linux 发行版（如 Alpine）和 WSL 上出现空 IP 问题。（感谢 @斯图超哥 的反馈）
-- 快速隧道刷新：通过在服务重启前清理过时的快速隧道 URL，提高了可靠性，确保正确获取并显示最新的公共 URL。
-- Systemd 日志提示：根据安装类型正确区分 `--user` 和系统级 `journalctl` 命令。
-- 合并 PR #16 来自 dreamwing/feature/macos-support
+- **网络兼容性**: 通过实现多重回退逻辑 (`ip route` -> `hostname` -> `ifconfig`) 解决了 `hostname -I` 仅限 Linux 的问题，确保在 Alpine Linux、WSL 和 macOS 上 100% 拿到有效 IP。(特别感谢 [@StewartLi666](https://x.com/StewartLi666) 的反馈)
+- **Sed 兼容性**: 修复了由于 GNU/Linux 和 BSD/macOS 之间 `sed -i` 语法差异导致的脚本错误。
+- **VPN 与网络**: 修复了 macOS 上的 VPN 接口检测和库服务重启逻辑。
+- **快速隧道可靠性**: 改进了更新后获取和显示 Cloudflare 快速隧道 (Quick Tunnel) URL 的可靠性。
+- **Systemd 日志提示**: 修正了 `journalctl` 命令提示，以便准确反映用户级服务与系统级服务的差异。
 
 ## [1.1.0] - 2026-02-25
 

@@ -9,11 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.1.1] - 2026-02-26
 
+### Added
+- **Full macOS Support**: ClawBridge is now officially compatible with macOS (Intel/Apple Silicon).
+- **Service Management (Launchd)**: Support for macOS `launchd` via `.plist` agents for background execution and auto-restart.
+- **Cross-Platform CI**: Automated tests and lint now verify stability on both Linux and macOS.
+
 ### Fixed
-- Robust IP detection: Replaced fragile `hostname -I` with a resilient multi-fallback logic (`ip route`, `hostname`, `ifconfig`) to prevent empty IP issues on some Linux distributions (e.g., Alpine) and WSL. (Thanks @斯图超哥 for the feedback)
-- Quick Tunnel Refresh: Improved reliability by clearing stale Quick Tunnel URLs before service restarts, ensuring the latest public URL is correctly fetched and displayed.
-- Systemd Log Hint: Correctly differentiate between `--user` and system-level `journalctl` commands based on the installation type.
-- Merge pull request #16 from dreamwing/feature/macos-support
+- **Network Compatibility**: Resolved issues with `hostname -I` by implementing a multi-fallback logic (`ip route` -> `hostname` -> `ifconfig`), ensuring reliability on Alpine Linux, WSL, and macOS. (Special thanks to [@StewartLi666](https://x.com/StewartLi666) for the feedback)
+- **Sed Compatibility**: Fixed script errors caused by `sed -i` differences between GNU/Linux and BSD/macOS.
+- **VPN & Networking**: Fixed VPN interface detection and service restart logic for macOS.
+- **Quick Tunnel Reliability**: Improved reliability when fetching and displaying Cloudflare Quick Tunnel URLs after updates.
+- **Systemd Log Hint**: Corrected `journalctl` command hints to accurately reflect user-level vs system-level services.
 
 ## [1.1.0] - 2026-02-25
 
