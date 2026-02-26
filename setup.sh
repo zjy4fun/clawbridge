@@ -9,6 +9,14 @@ NC='\033[0m'
 
 echo -e "${BLUE}=== ClawBridge Dashboard Installer ===${NC}"
 
+# OS Detection
+OS_TYPE=$(uname -s)
+if [ "$OS_TYPE" = "Darwin" ]; then
+    sed_inplace() { sed -i '' "$@"; }
+else
+    sed_inplace() { sed -i "$@"; }
+fi
+
 # Parse Args
 TOKEN=""
 NO_TUNNEL=false
@@ -50,9 +58,13 @@ echo -e "${GREEN}📂 Installing in: $APP_DIR${NC}"
 SERVICE_NAME=${CLAW_SERVICE_NAME:-clawbridge}
 
 # Stop existing service if it exists (Safe stop)
-systemctl --user stop "$SERVICE_NAME" >/dev/null 2>&1 || true
-if command -v systemctl &> /dev/null; then
-    systemctl stop "$SERVICE_NAME" >/dev/null 2>&1 || true
+if [ "$OS_TYPE" = "Darwin" ]; then
+    launchctl unload "$HOME/Library/LaunchAgents/com.dreamwing.${SERVICE_NAME}.plist" >/dev/null 2>&1 || true
+else
+    systemctl --user stop "$SERVICE_NAME" >/dev/null 2>&1 || true
+    if command -v systemctl &> /dev/null; then
+        systemctl stop "$SERVICE_NAME" >/dev/null 2>&1 || true
+    fi
 fi
 
 # 2. Install Dependencies
@@ -99,7 +111,7 @@ else
     echo "✅ Updating .env configuration..."
     # Update or Append PORT
     if grep -q "^PORT=" "$ENV_FILE"; then
-        sed -i "s/^PORT=.*/PORT=$PORT/" "$ENV_FILE"
+        sed_inplace "s/^PORT=.*/PORT=$PORT/" "$ENV_FILE"
     else
         echo "PORT=$PORT" >> "$ENV_FILE"
     fi
@@ -128,28 +140,75 @@ fi
 if [ ! -z "$DETECTED_OPENCLAW" ]; then
     echo "🔍 Detected openclaw at: $DETECTED_OPENCLAW"
     # Update or append OPENCLAW_PATH
-    sed -i '/OPENCLAW_PATH=/d' "$ENV_FILE"
+    sed_inplace '/OPENCLAW_PATH=/d' "$ENV_FILE"
     echo "OPENCLAW_PATH=$DETECTED_OPENCLAW" >> "$ENV_FILE"
 fi
 
-# 4. Setup Systemd (Root required for system-wide, but let's try user first)
-SERVICE_FILE="$HOME/.config/systemd/user/${SERVICE_NAME}.service"
-USE_USER_SYSTEMD=true
-
-if [ ! -d "$HOME/.config/systemd/user" ]; then
-    mkdir -p "$HOME/.config/systemd/user"
-fi
-
-# Check if user dbus is active (common issue in bare VPS)
-if ! systemctl --user list-units >/dev/null 2>&1; then
-    echo -e "${YELLOW}⚠️  User-level systemd not available. Generating standard systemd file...${NC}"
-    USE_USER_SYSTEMD=false
-    SERVICE_FILE="/tmp/${SERVICE_NAME}.service"
-fi
-
+# 4. Setup Service
 NODE_PATH=$(which node)
 
-cat > "$SERVICE_FILE" <<EOF
+if [ "$OS_TYPE" = "Darwin" ]; then
+    # macOS launchd setup
+    SERVICE_DIR="$HOME/Library/LaunchAgents"
+    mkdir -p "$SERVICE_DIR"
+    SERVICE_FILE="$SERVICE_DIR/com.dreamwing.${SERVICE_NAME}.plist"
+    
+    cat > "$SERVICE_FILE" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.dreamwing.${SERVICE_NAME}</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>$NODE_PATH</string>
+        <string>index.js</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>$APP_DIR</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>NODE_ENV</key>
+        <string>production</string>
+        <key>PATH</key>
+        <string>$PATH</string>
+    </dict>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/tmp/com.dreamwing.${SERVICE_NAME}.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/com.dreamwing.${SERVICE_NAME}.err</string>
+</dict>
+</plist>
+EOF
+    
+    echo "📝 Service file created at: $SERVICE_FILE"
+    echo "🚀 Loading macOS Launch Agent (com.dreamwing.${SERVICE_NAME})..."
+    launchctl load -w "$SERVICE_FILE" >/dev/null 2>&1 || true
+    # If already loaded and we just want to restart:
+    launchctl unload "$SERVICE_FILE" >/dev/null 2>&1 || true
+    launchctl load -w "$SERVICE_FILE"
+    echo -e "${GREEN}✅ Service started!${NC}"
+
+else
+    # Linux systemd setup
+    SERVICE_FILE="$HOME/.config/systemd/user/${SERVICE_NAME}.service"
+    USE_USER_SYSTEMD=true
+
+    if [ ! -d "$HOME/.config/systemd/user" ]; then
+        mkdir -p "$HOME/.config/systemd/user"
+    fi
+
+    # Check if user dbus is active (common issue in bare VPS)
+    if ! systemctl --user list-units >/dev/null 2>&1; then
+        echo -e "${YELLOW}⚠️  User-level systemd not available. Generating standard systemd file...${NC}"
+        USE_USER_SYSTEMD=false
+        SERVICE_FILE="/tmp/${SERVICE_NAME}.service"
+    fi
+
+    cat > "$SERVICE_FILE" <<EOF
 [Unit]
 Description=ClawBridge Dashboard (${SERVICE_NAME})
 After=network.target
@@ -167,20 +226,21 @@ EnvironmentFile=$APP_DIR/.env
 WantedBy=default.target
 EOF
 
-echo "📝 Service file created at: $SERVICE_FILE"
+    echo "📝 Service file created at: $SERVICE_FILE"
 
-if [ "$USE_USER_SYSTEMD" = true ]; then
-    echo "🚀 Enabling User Service ($SERVICE_NAME)..."
-    systemctl --user daemon-reload
-    systemctl --user enable "$SERVICE_NAME"
-    systemctl --user restart "$SERVICE_NAME"
-    echo -e "${GREEN}✅ Service started!${NC}"
-else
-    echo -e "${YELLOW}👉 Please run the following command with sudo to install the service:${NC}"
-    echo "sudo mv $SERVICE_FILE /etc/systemd/system/${SERVICE_NAME}.service"
-    echo "sudo systemctl daemon-reload"
-    echo "sudo systemctl enable ${SERVICE_NAME}"
-    echo "sudo systemctl start ${SERVICE_NAME}"
+    if [ "$USE_USER_SYSTEMD" = true ]; then
+        echo "🚀 Enabling User Service ($SERVICE_NAME)..."
+        systemctl --user daemon-reload
+        systemctl --user enable "$SERVICE_NAME"
+        systemctl --user restart "$SERVICE_NAME"
+        echo -e "${GREEN}✅ Service started!${NC}"
+    else
+        echo -e "${YELLOW}👉 Please run the following command with sudo to install the service:${NC}"
+        echo "sudo mv $SERVICE_FILE /etc/systemd/system/${SERVICE_NAME}.service"
+        echo "sudo systemctl daemon-reload"
+        echo "sudo systemctl enable ${SERVICE_NAME}"
+        echo "sudo systemctl start ${SERVICE_NAME}"
+    fi
 fi
 
 # 5. Remote Access (Cloudflare Tunnel)
@@ -214,17 +274,29 @@ USE_VPN=false
 VPN_IP=""
 VPN_TYPE=""
 
-if ip addr show tailscale0 >/dev/null 2>&1; then
-    VPN_IP=$(ip -4 addr show tailscale0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
-    if [ ! -z "$VPN_IP" ]; then
-        USE_VPN=true
-        VPN_TYPE="Tailscale"
+if [ "$OS_TYPE" != "Darwin" ]; then
+    # VPN detection (Linux only — macOS uses different interface names)
+    if ip addr show tailscale0 >/dev/null 2>&1; then
+        VPN_IP=$(ip -4 addr show tailscale0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
+        if [ ! -z "$VPN_IP" ]; then
+            USE_VPN=true
+            VPN_TYPE="Tailscale"
+        fi
+    elif ip addr show wg0 >/dev/null 2>&1; then
+        VPN_IP=$(ip -4 addr show wg0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
+        if [ ! -z "$VPN_IP" ]; then
+            USE_VPN=true
+            VPN_TYPE="WireGuard"
+        fi
     fi
-elif ip addr show wg0 >/dev/null 2>&1; then
-    VPN_IP=$(ip -4 addr show wg0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
-    if [ ! -z "$VPN_IP" ]; then
-        USE_VPN=true
-        VPN_TYPE="WireGuard"
+else
+    # macOS VPN detection via ifconfig
+    if ifconfig utun0 >/dev/null 2>&1; then
+        VPN_IP=$(ifconfig utun0 | grep "inet " | awk '{print $2}')
+        if [ ! -z "$VPN_IP" ]; then
+            USE_VPN=true
+            VPN_TYPE="Tailscale"
+        fi
     fi
 fi
 
@@ -238,8 +310,8 @@ if [[ "$ENABLE_TUNNEL" =~ ^[Yy]$ ]] || [ "$USE_VPN" = true ]; then
         echo -e "💡 To force Cloudflare anyway, run: ./install.sh --force-cf"
         ENABLE_TUNNEL="n"
         # Clear any existing tunnel config
-        sed -i '/TUNNEL_TOKEN=/d' "$ENV_FILE"
-        sed -i '/ENABLE_EMBEDDED_TUNNEL=/d' "$ENV_FILE"
+        sed_inplace '/TUNNEL_TOKEN=/d' "$ENV_FILE"
+        sed_inplace '/ENABLE_EMBEDDED_TUNNEL=/d' "$ENV_FILE"
     else
         # Normal Cloudflare Logic
         if [ "$FORCE_CF" = true ]; then
@@ -251,13 +323,26 @@ if [[ "$ENABLE_TUNNEL" =~ ^[Yy]$ ]] || [ "$USE_VPN" = true ]; then
             echo "⬇️ Downloading cloudflared..."
             # Detect arch
             ARCH=$(uname -m)
-            if [[ "$ARCH" == "x86_64" ]]; then
-                wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -O cloudflared
-            elif [[ "$ARCH" == "aarch64" ]]; then
-                wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64 -O cloudflared
+            if [ "$OS_TYPE" = "Darwin" ]; then
+                if [[ "$ARCH" == "x86_64" ]] || [[ "$ARCH" == "amd64" ]]; then
+                    wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-darwin-amd64.tgz -O cloudflared.tgz
+                    tar -xzf cloudflared.tgz && rm cloudflared.tgz
+                elif [[ "$ARCH" == "arm64" ]] || [[ "$ARCH" == "aarch64" ]]; then
+                    wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-darwin-arm64.tgz -O cloudflared.tgz
+                    tar -xzf cloudflared.tgz && rm cloudflared.tgz
+                else
+                    echo "❌ Architecture $ARCH not supported for macOS auto-download."
+                    exit 1
+                fi
             else
-                echo "❌ Architecture $ARCH not supported for auto-download."
-                exit 1
+                if [[ "$ARCH" == "x86_64" ]]; then
+                    wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -O cloudflared
+                elif [[ "$ARCH" == "aarch64" ]]; then
+                    wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64 -O cloudflared
+                else
+                    echo "❌ Architecture $ARCH not supported for Linux auto-download."
+                    exit 1
+                fi
             fi
             chmod +x cloudflared
         fi
@@ -274,8 +359,8 @@ if [[ "$ENABLE_TUNNEL" =~ ^[Yy]$ ]] || [ "$USE_VPN" = true ]; then
 
     # Write Config
     # Clean old
-    sed -i '/TUNNEL_TOKEN=/d' "$ENV_FILE"
-    sed -i '/ENABLE_EMBEDDED_TUNNEL=/d' "$ENV_FILE"
+    sed_inplace '/TUNNEL_TOKEN=/d' "$ENV_FILE"
+    sed_inplace '/ENABLE_EMBEDDED_TUNNEL=/d' "$ENV_FILE"
     
     if [ ! -z "$CF_TOKEN" ]; then
         echo "TUNNEL_TOKEN=$CF_TOKEN" >> "$ENV_FILE"
@@ -304,7 +389,11 @@ if [[ "$ENABLE_TUNNEL" =~ ^[Yy]$ ]] || [ "$USE_VPN" = true ]; then
     fi
         
     # Restart service to pick up new env
-    if [ "$USE_USER_SYSTEMD" = true ]; then
+    if [ "$OS_TYPE" = "Darwin" ]; then
+        pkill -f "node index.js" || true
+        launchctl unload "$HOME/Library/LaunchAgents/com.dreamwing.${SERVICE_NAME}.plist" >/dev/null 2>&1 || true
+        launchctl load -w "$HOME/Library/LaunchAgents/com.dreamwing.${SERVICE_NAME}.plist"
+    elif [ "$USE_USER_SYSTEMD" = true ]; then
         # Ensure we don't have a zombie process holding the port
         pkill -f "node index.js" || true
         systemctl --user restart "$SERVICE_NAME"
@@ -313,7 +402,12 @@ fi
 fi
 
 # 6. Summary
-IP=$(hostname -I | awk '{print $1}')
+if command -v hostname &> /dev/null && hostname -I &> /dev/null; then
+    IP=$(hostname -I | awk '{print $1}')
+else
+    # Fallback for macOS / BSD
+    IP=$(ifconfig | grep "inet " | grep -Fv 127.0.0.1 | awk '{print $2}' | head -n 1)
+fi
 PORT=${PORT:-3000}
 
 # Helper: print QR code for a URL (interactive TTY only)
@@ -379,7 +473,11 @@ if [ "$QUICK_TUNNEL" = true ] || [ -z "$CF_TOKEN" ]; then
         done
         
         if [ ! -f "$APP_DIR/.quick_tunnel_url" ]; then
-            echo -e "\n${YELLOW}⚠️  URL not ready yet. Check logs later: journalctl --user -u ${SERVICE_NAME} -f${NC}"
+            if [ "$OS_TYPE" = "Darwin" ]; then
+                echo -e "\n${YELLOW}⚠️  URL not ready yet. Check logs later: tail -f /tmp/com.dreamwing.${SERVICE_NAME}.log${NC}"
+            else
+                echo -e "\n${YELLOW}⚠️  URL not ready yet. Check logs later: journalctl --user -u ${SERVICE_NAME} -f${NC}"
+            fi
         fi
     fi
 fi

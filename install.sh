@@ -8,6 +8,14 @@ set -e
 echo "🌊 ClawBridge Installer"
 echo "-----------------------"
 
+# OS Detection
+OS_TYPE=$(uname -s)
+if [ "$OS_TYPE" = "Darwin" ]; then
+    sed_inplace() { sed -i '' "$@"; }
+else
+    sed_inplace() { sed -i "$@"; }
+fi
+
 # Detect if running from inside the installation directory
 if [ "$(basename "$PWD")" == "clawbridge" ] && [ "$(basename "$(dirname "$PWD")")" == "skills" ]; then
     TARGET_DIR="."
