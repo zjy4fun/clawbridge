@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-02-26
+
+### Fixed
+- Robust IP detection: Replaced fragile `hostname -I` with a resilient multi-fallback logic (`ip route`, `hostname`, `ifconfig`) to prevent empty IP issues on some Linux distributions (e.g., Alpine) and WSL. (Thanks @斯图超哥 for the feedback)
+- Quick Tunnel Refresh: Improved reliability by clearing stale Quick Tunnel URLs before service restarts, ensuring the latest public URL is correctly fetched and displayed.
+- Systemd Log Hint: Correctly differentiate between `--user` and system-level `journalctl` commands based on the installation type.
+
 ## [1.1.0] - 2026-02-25
 
 ### Added
@@ -33,5 +40,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactored installer (`setup.sh`) to remove magic link output in favor of secure login.
 - Refactored: split monolithic index.js (~600 lines) into modular src/ directory. (Thanks [@yaochao](https://github.com/yaochao) for suggesting #3)
 - Replaced `wget` with Node.js native `https` module for binary downloads. (Thanks [@yaochao](https://github.com/yaochao) for reporting #6)
-- Cleaned up unused dependencies to reduce footprint.
 

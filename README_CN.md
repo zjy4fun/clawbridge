@@ -83,6 +83,7 @@ curl -sL https://clawbridge.app/install.sh | bash
 
 特别感谢社区成员对 ClawBridge 的改进建议：
 - [@yaochao](https://github.com/yaochao) 协助发现了关键的安全性漏洞与环境移植问题，并提出架构重构建议 (#1, #2, #3, #4, #5, #6, #7)。
+- [@stuchao](https://github.com/stuchao) 提供关于 Linux 兼容性、IP 检测稳定性以及快速隧道刷新逻辑的反馈 (#12)。
 
 ---
 *MIT License. Built for the OpenClaw Community.*
