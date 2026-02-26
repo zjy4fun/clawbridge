@@ -388,6 +388,9 @@ if [[ "$ENABLE_TUNNEL" =~ ^[Yy]$ ]] || [ "$USE_VPN" = true ]; then
         fi
     fi
         
+        # Clean old quick tunnel url before restarting so we wait for a fresh one
+        rm -f "$APP_DIR/.quick_tunnel_url"
+
     # Restart service to pick up new env
     if [ "$OS_TYPE" = "Darwin" ]; then
         pkill -f "node index.js" || true
@@ -397,16 +400,22 @@ if [[ "$ENABLE_TUNNEL" =~ ^[Yy]$ ]] || [ "$USE_VPN" = true ]; then
         # Ensure we don't have a zombie process holding the port
         pkill -f "node index.js" || true
         systemctl --user restart "$SERVICE_NAME"
+    else
+        pkill -f "node index.js" || true
+        sudo systemctl restart "$SERVICE_NAME"
     fi
 fi
 fi
 
 # 6. Summary
-if [ "$OS_TYPE" != "Darwin" ] && command -v hostname &> /dev/null && hostname -I &> /dev/null; then
-    IP=$(hostname -I | awk '{print $1}')
+if [ "$OS_TYPE" != "Darwin" ]; then
+    # Robust IP detection for Linux (handles Alpine/WSL quirks where hostname -I fails silently)
+    IP=$( (ip route get 1 | awk '{print $(NF-2);exit}') 2>/dev/null || \
+          (hostname -I | awk '{print $1}') 2>/dev/null || \
+          (ifconfig | grep "inet " | grep -Fv 127.0.0.1 | awk '{print $2}' | head -n 1) 2>/dev/null )
 else
     # Fallback for macOS / BSD
-    IP=$(ifconfig | grep "inet " | grep -Fv 127.0.0.1 | awk '{print $2}' | head -n 1)
+    IP=$(ifconfig | grep "inet " | grep -Fv 127.0.0.1 | awk '{print $2}' | head -n 1) 2>/dev/null
 fi
 PORT=${PORT:-3000}
 
@@ -475,8 +484,10 @@ if [ "$QUICK_TUNNEL" = true ] || [ -z "$CF_TOKEN" ]; then
         if [ ! -f "$APP_DIR/.quick_tunnel_url" ]; then
             if [ "$OS_TYPE" = "Darwin" ]; then
                 echo -e "\n${YELLOW}⚠️  URL not ready yet. Check logs later: tail -f /tmp/com.dreamwing.${SERVICE_NAME}.log${NC}"
-            else
+            elif [ "$USE_USER_SYSTEMD" = true ]; then
                 echo -e "\n${YELLOW}⚠️  URL not ready yet. Check logs later: journalctl --user -u ${SERVICE_NAME} -f${NC}"
+            else
+                echo -e "\n${YELLOW}⚠️  URL not ready yet. Check logs later: sudo journalctl -u ${SERVICE_NAME} -f${NC}"
             fi
         fi
     fi
