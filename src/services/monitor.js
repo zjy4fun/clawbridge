@@ -65,7 +65,15 @@ function getVersions() {
 function checkSystemStatus(callback) {
     checkFileChanges();
 
-    const mergedCmd = `echo "===DISK==="; df -h / | awk 'NR==2 {print $5}'; echo "===GWPID==="; pgrep -f 'openclaw gateway' | head -n 1 || true; echo "===PS==="; ps -eo pid,pcpu,comm,args --sort=-pcpu | head -n 20`;
+    const osType = os.type();
+    let mergedCmd = '';
+
+    if (osType === 'Darwin') {
+        mergedCmd = `echo "===DISK==="; df -h / | awk 'NR==2 {print $5}'; echo "===GWPID==="; pgrep -f 'openclaw gateway' | head -n 1 || true; echo "===PS==="; ps -Ao pid,pcpu,comm,args -r | head -n 21`;
+    } else {
+        mergedCmd = `echo "===DISK==="; df -h / | awk 'NR==2 {print $5}'; echo "===GWPID==="; pgrep -f 'openclaw gateway' | head -n 1 || true; echo "===PS==="; ps -eo pid,pcpu,comm,args --sort=-pcpu | head -n 20`;
+    }
+
     exec(mergedCmd, (err, stdout) => {
         const sections = stdout ? stdout.split(/===\w+===\n?/) : [];
         const diskUsage = sections[1] ? sections[1].trim() || '--%' : '--%';

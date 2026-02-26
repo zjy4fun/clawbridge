@@ -24,8 +24,17 @@ router.post('/api/kill', (req, res) => {
             return res.json({ status: 'none', message: 'No matching script processes found.' });
         }
 
-        exec(`ps -p ${pidList.join(',')} -o pid,args --no-headers`, (psErr, psOut) => {
-            const processDetails = psOut ? psOut.trim() : pidList.join(', ');
+        exec(`ps -p ${pidList.join(',')} -o pid,args`, (psErr, psOut) => {
+            let processDetails = pidList.join(', ');
+            if (psOut) {
+                // Strip the header line generic to both Linux and macOS
+                const lines = psOut.trim().split('\n');
+                if (lines.length > 1) {
+                    processDetails = lines.slice(1).join('\n');
+                } else {
+                    processDetails = lines[0]; // just in case
+                }
+            }
             console.log(`[Kill] Terminating processes by ${req.ip} at ${new Date().toISOString()}:\n${processDetails}`);
 
             pidList.forEach(pid => {
